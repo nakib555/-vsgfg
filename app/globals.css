@@ -1,0 +1,212 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import 'highlight.js/styles/default.css'; /* Basic structural CSS for highlight.js */
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --code-keyword: 280 60% 70%; /* Purple-ish, similar to #c678dd */
+    --code-string: 100 50% 50%; /* Green-ish, similar to #98c379 */
+    --code-comment: 215 10% 50%; /* Gray-ish, similar to #7f848e */
+    --code-number: 30 70% 60%; /* Orange-ish, similar to #d19a66 */
+    --code-boolean: 190 50% 60%; /* Cyan-ish, similar to #56b6c2 */
+    --code-tag: 0 70% 60%; /* Red-ish for HTML tags */
+    --code-attribute: 40 70% 60%; /* Yellow-ish for HTML attributes */
+    --search-highlight-bg: 48 96% 53.1%; /* Base color for highlight */
+    --destructive-foreground: 210 40% 98%;
+    --success: 142.1 76.2% 36.3%;
+    --success-foreground: 355.7 100% 97.3%;
+    --warning: 38 92.7% 50.2%;
+    --warning-foreground: 222.2 84% 4.9%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+    --font-ui: var(--font-inter); /* Ensure --font-inter is defined by your font import */
+    --font-mono: var(--font-jetbrains); /* Ensure --font-jetbrains is defined */
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --code-keyword: 280 60% 70%;
+    --code-string: 100 50% 50%;
+    --code-comment: 215 10% 50%;
+    --code-number: 30 70% 60%;
+    --code-boolean: 190 50% 60%;
+    --code-tag: 0 70% 60%;
+    --code-attribute: 40 70% 60%;
+    --search-highlight-bg: 48 96% 53.1%;
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 210 40% 98%;
+    --success: 142.1 70.6% 45.3%;
+    --success-foreground: 144.9 80.4% 10%;
+    --warning: 48 96% 53.1%;
+    --warning-foreground: 223 47.4% 11.2%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Line numbers for code blocks */
+.line-numbers {
+  position: relative;
+  padding-left: 2rem;
+  counter-reset: line;
+}
+
+.line-numbers > code {
+  display: grid; /* Ensures lines stack correctly */
+}
+
+.line-numbers .line::before {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+  display: inline-block;
+  width: 1rem; /* Width of the number itself */
+  text-align: right;
+  margin-right: 1rem; /* Space between number and code */
+  margin-left: -2rem; /* Pulls it into the padding area of .line-numbers */
+  counter-increment: line;
+  content: counter(line);
+  user-select: none; /* Prevent selecting line numbers */
+}
+
+/* Terminal command styles */
+.ps-success {
+  color: hsl(var(--success)); /* Use theme variable */
+}
+
+.ps-error {
+  color: hsl(var(--destructive)); /* Use theme variable */
+}
+
+.ps-info {
+  color: hsl(217.2, 91.2%, 59.8%); /* Consider making this a theme variable if used often */
+}
+
+.ps-command {
+  color: hsl(var(--warning)); /* Using warning color for commands, adjust if needed */
+}
+
+.search-highlight {
+  background-color: hsla(var(--search-highlight-bg), 0.3);
+  border-radius: 0.125rem;
+  padding: 0 0.125rem;
+}
+
+.dark .search-highlight {
+  background-color: hsla(var(--search-highlight-bg), 0.4);
+}
+
+/* Custom overrides for highlight.js using CSS variables */
+.hljs {
+  color: hsl(var(--foreground)); /* Default text color for code */
+  background: transparent; /* Let parent div provide background */
+  /* Ensure mono font and consistent font size if not inherited properly */
+  /* font-family: var(--font-mono); */
+  /* font-size: inherit; */ /* Or specific value like 0.875rem */
+}
+
+/* highlight.js default.css applies padding: 1em to pre code.hljs. Adjust if needed. */
+/* pre code.hljs { padding: 1rem; } */
+
+.hljs-keyword,
+.hljs-built_in, /* e.g. console, Math in JS */
+.hljs-type, /* e.g. string, number, boolean types */
+.hljs-selector-tag, /* CSS selectors */
+.hljs-selector-pseudo, /* CSS pseudo-selectors */
+.hljs-meta-keyword {
+  color: hsl(var(--code-keyword));
+}
+
+.hljs-literal, /* true, false, null */
+.hljs-symbol { /* GraphQL enum values, etc. */
+  color: hsl(var(--code-boolean));
+}
+
+.hljs-number { color: hsl(var(--code-number)); }
+
+.hljs-regexp,
+.hljs-string,
+.hljs-char.escape_, /* escape sequences */
+.hljs-template-variable, /* ${var} in template strings */
+.hljs-meta-string {
+  color: hsl(var(--code-string));
+}
+
+.hljs-comment,
+.hljs-quote { /* Markdown blockquotes */
+  color: hsl(var(--code-comment));
+  font-style: italic;
+}
+
+.hljs-tag .hljs-name { color: hsl(var(--code-tag)); } /* Tag name itself */
+.hljs-attr, /* Attribute name, CSS properties, JSON keys */
+.hljs-property, /* alias for attr in some languages */
+.hljs-selector-attr,
+.hljs-variable.language_ { /* CSS variables --foo */
+  color: hsl(var(--code-attribute));
+}
+
+.hljs-meta { color: hsl(var(--code-comment)); } /* e.g., <!DOCTYPE html>, or @decorators */
+
+.hljs-title.class_, .hljs-title.class_.inherited__, /* Class names */
+.hljs-title.function_ { /* Function names */
+  color: hsl(var(--accent-foreground)); /* Using accent for function/class names */
+}
+
+.hljs-emphasis { font-style: italic; } /* Markdown italic */
+.hljs-strong { font-weight: bold; } /* Markdown bold */
+
+.hljs-link { text-decoration: underline; color: hsl(var(--primary)); } /* Markdown link */
+.hljs-bullet { color: hsl(var(--code-keyword)); } /* Markdown list bullet */
+
+/* Scoped class for AI chat code blocks to ensure pre/code tags behave as expected with highlight.js */
+.ai-chat-code-block pre {
+  background-color: transparent; /* Ensure no conflicting background */
+  padding: 0; /* Remove padding, let code.hljs handle it */
+  margin: 0; /* Remove margin */
+  overflow-x: visible; /* Let code tag handle overflow if needed */
+}
+
+/* The code tag will get padding from highlight.js default.css (pre code.hljs) */
+/* .ai-chat-code-block code.hljs { } */
