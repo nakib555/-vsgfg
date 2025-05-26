@@ -1,81 +1,150 @@
 // app/page.tsx
 "use client"
 
-import { useState } from "react"
-// Make sure you are importing YOUR custom Resizable, not the one from ui if you intend to use this one.
-import { Resizable } from "@/components/resizable" // Assuming this is your custom one
+import { useState, useCallback, useRef } from "react"
+import { Resizable } from "@/components/resizable"
 import Sidebar from "@/components/sidebar"
-import EditorArea from "@/components/editor-area"
-import Terminal from "@/components/terminal"
+import EditorArea, { type EditorAreaRef } from "@/components/editor-area"
+import Terminal, { type TerminalRef } from "@/components/terminal" // Import TerminalRef
 import type { CodeFile } from "@/types/file"
+import { type EditorTheme } from "@/components/code-editor";
 
-export default function Home() {
+export default function Home() { 
   const [terminalVisible, setTerminalVisible] = useState(true)
   const [activeFile, setActiveFile] = useState<CodeFile | null>(null)
-  // ... (rest of your state) ...
-  const [files, setFiles] = useState<CodeFile[]>([
-    {
-      id: "1",
-      name: "welcome.txt",
-      path: "welcome.txt",
-      content:
-        "Welcome to the AI Coding Assistant!\n\nClick on a file in the explorer to edit it, or ask the AI assistant for help.",
-      language: "plaintext",
-    },
-    {
-      id: "2",
-      name: "example.js",
-      path: "src/example.js",
-      content: "export function greet(name) {\n  return `Hello, ${name}!`;\n}\n",
-      language: "javascript",
-    },
-    {
-      id: "3",
-      name: "app.js",
-      path: "src/app.js",
-      content: "import { greet } from './example.js';\n\nconsole.log(greet('World'));\n",
-      language: "javascript",
-    },
-  ])
+  const [editorTypingTarget, setEditorTypingTarget] = useState<{ path: string; content: string; onComplete: () => void } | null>(null);
+
+
+  const editorAreaRef = useRef<EditorAreaRef>(null);
+  const terminalRef = useRef<TerminalRef>(null); // Add ref for Terminal
+
+  const [selectedEditorTheme, setSelectedEditorTheme] = useState<EditorTheme | undefined>(undefined);
+  const [selectedTerminalTheme, setSelectedTerminalTheme] = useState<string | undefined>(undefined);
+
+
+  const handleFileContentChange = useCallback((fileIdOrPath: string, newContent: string) => {
+    setActiveFile(prev => {
+      if (prev && (prev.id === fileIdOrPath || prev.path === fileIdOrPath)) {
+        return { ...prev, content: newContent };
+      }
+      // If the file being changed is not the active one, we might need to update a global store
+      // or handle this differently. For now, only updates if it's the active file.
+      return prev;
+    });
+    // Potentially, you might want to inform the EditorArea to update its internal cache if any
+  }, []);
 
 
   const toggleTerminal = () => {
     setTerminalVisible(!terminalVisible)
   }
 
+  const terminalWorkingDirectory = "my_project";
+
+  const triggerEditorAreaRefresh = useCallback(() => {
+    editorAreaRef.current?.triggerFileTreeRefresh();
+  }, []);
+
+  const handleAiCreateFileAndType = useCallback(async (filePath: string, content: string): Promise<void> => {
+    const apiResponse = await fetch('/api/files', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetPath: filePath, content, type: 'createFile' }),
+    });
+    if (!apiResponse.ok) {
+      const errorData = await apiResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to create/update file ${filePath}`);
+    }
+    
+    triggerEditorAreaRefresh(); // Refresh file tree after successful creation/update
+
+    return new Promise(async (resolveStepCompletion) => {
+      if (editorAreaRef.current) {
+        const fileItem = { name: filePath.split('/').pop() || filePath, path: filePath, isDirectory: false, id: filePath };
+        await editorAreaRef.current.handleFileSelectProgrammatic(fileItem); // Open the file
+      }
+      setEditorTypingTarget({ path: filePath, content, onComplete: resolveStepCompletion }); // Set target for typing
+    });
+  }, [triggerEditorAreaRefresh]);
+
+  const handleAiOpenFileInEditor = useCallback(async (filePath: string) => {
+    // This function will be called by the AI action processor
+    // It just opens the file; typing is handled by handleAiCreateFileAndType
+    if (editorAreaRef.current) {
+      const fileItem = { name: filePath.split('/').pop() || filePath, path: filePath, isDirectory: false, id: filePath }; // Simplified FileTreeItem
+      await editorAreaRef.current.handleFileSelectProgrammatic(fileItem); // New method in EditorArea
+    }
+    setEditorTypingTarget(null); // Clear any previous typing target
+  }, []);
+
+  const handleAiEditorTypingComplete = useCallback((filePath: string) => {
+    if (editorTypingTarget && editorTypingTarget.path === filePath && editorTypingTarget.onComplete) {
+      editorTypingTarget.onComplete(); // Resolve the promise for the action step
+    }
+    setEditorTypingTarget(null); // Clear the typing target
+  }, [editorTypingTarget]);
+
+  const handleAiExecuteTerminalCommand = useCallback(async (command: string): Promise<{ success: boolean; output: string }> => {
+    if (terminalRef.current) {
+      if (!terminalVisible) setTerminalVisible(true); // Ensure terminal is visible
+      return await terminalRef.current.executeExternalCommand(command);
+    }
+    return { success: false, output: "Terminal not available." };
+  }, [terminalVisible]);
+
+
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar Resizable Panel */}
         <Resizable
           direction="horizontal"
-          initialSize={350} // Initial size in pixels
-          minSize={200}     // Min size in pixels
-          maxSize={600}     // Max size in pixels
-          resizerSide="right" // The resizer is on the right edge of this panel
-          className="border-r border-border flex flex-col" // Added flex-col for Sidebar content
+          initialSize={350}
+          minSize={250}
+          maxSize={1000}
+          resizerSide="right"
+          className="border-r border-border flex flex-col"
         >
-          <Sidebar />
+          <Sidebar
+            onRefreshFileTree={triggerEditorAreaRefresh}
+            onAiOpenFileInEditor={handleAiOpenFileInEditor}
+            onAiExecuteTerminalCommand={handleAiExecuteTerminalCommand}
+            onAiCreateFileAndType={handleAiCreateFileAndType}
+            // Pass editor theme setters if sidebar controls them
+            setSelectedEditorTheme={setSelectedEditorTheme}
+            setSelectedTerminalTheme={setSelectedTerminalTheme}
+            // Pass current themes if sidebar needs to know them
+            currentEditorTheme={selectedEditorTheme}
+            currentTerminalTheme={selectedTerminalTheme}
+          />
         </Resizable>
 
         <div className="flex-1 flex flex-col overflow-hidden">
           <EditorArea
-            files={files}
+            ref={editorAreaRef}
             activeFile={activeFile}
             setActiveFile={setActiveFile}
+            onFileContentChange={handleFileContentChange}
             toggleTerminal={toggleTerminal}
+            selectedEditorTheme={selectedEditorTheme}
+            rootDirectoryName={terminalWorkingDirectory}
+            editorTypingTarget={editorTypingTarget} 
+            onEditorTypingComplete={handleAiEditorTypingComplete} 
           />
 
           {terminalVisible && (
             <Resizable
               direction="vertical"
-              initialSize={200} // Initial size in pixels
+              initialSize={200}
               minSize={100}
-              maxSize="40vh" // Max size can still be relative, converted internally
-              resizerSide="top" // The resizer is on the top edge of this panel
+              maxSize="40vh"
+              resizerSide="top"
               className="border-t border-border overflow-hidden"
             >
-              <Terminal />
+              <Terminal
+                ref={terminalRef} // Assign ref
+                theme={selectedTerminalTheme}
+                workingDirectory={terminalWorkingDirectory}
+              />
             </Resizable>
           )}
         </div>

@@ -1,8 +1,9 @@
+/* app/globals.css */
+
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import 'highlight.js/styles/default.css'; /* Basic structural CSS for highlight.js */
 
 @layer base {
   :root {
@@ -21,14 +22,14 @@
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
-    --code-keyword: 280 60% 70%; /* Purple-ish, similar to #c678dd */
-    --code-string: 100 50% 50%; /* Green-ish, similar to #98c379 */
-    --code-comment: 215 10% 50%; /* Gray-ish, similar to #7f848e */
-    --code-number: 30 70% 60%; /* Orange-ish, similar to #d19a66 */
-    --code-boolean: 190 50% 60%; /* Cyan-ish, similar to #56b6c2 */
-    --code-tag: 0 70% 60%; /* Red-ish for HTML tags */
-    --code-attribute: 40 70% 60%; /* Yellow-ish for HTML attributes */
-    --search-highlight-bg: 48 96% 53.1%; /* Base color for highlight */
+    --code-keyword: 280 60% 70%;
+    --code-string: 100 50% 50%;
+    --code-comment: 215 10% 50%;
+    --code-number: 30 70% 60%;
+    --code-boolean: 190 50% 60%;
+    --code-tag: 0 70% 60%;
+    --code-attribute: 40 70% 60%;
+    --search-highlight-bg: 48 96% 53.1%;
     --destructive-foreground: 210 40% 98%;
     --success: 142.1 76.2% 36.3%;
     --success-foreground: 355.7 100% 97.3%;
@@ -38,8 +39,8 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
-    --font-ui: var(--font-inter); /* Ensure --font-inter is defined by your font import */
-    --font-mono: var(--font-jetbrains); /* Ensure --font-jetbrains is defined */
+    --font-ui: var(--font-inter);
+    --font-mono: var(--font-jetbrains);
   }
 
   .dark {
@@ -83,48 +84,27 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-ui); /* Apply UI font to body */
+    line-height: 1.6; /* Improve default line height for readability */
   }
-}
-
-/* Line numbers for code blocks */
-.line-numbers {
-  position: relative;
-  padding-left: 2rem;
-  counter-reset: line;
-}
-
-.line-numbers > code {
-  display: grid; /* Ensures lines stack correctly */
-}
-
-.line-numbers .line::before {
-  color: hsl(var(--muted-foreground));
-  font-size: 0.75rem;
-  display: inline-block;
-  width: 1rem; /* Width of the number itself */
-  text-align: right;
-  margin-right: 1rem; /* Space between number and code */
-  margin-left: -2rem; /* Pulls it into the padding area of .line-numbers */
-  counter-increment: line;
-  content: counter(line);
-  user-select: none; /* Prevent selecting line numbers */
+  /* Headings using UI font by default */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-ui);
+  }
 }
 
 /* Terminal command styles */
 .ps-success {
-  color: hsl(var(--success)); /* Use theme variable */
+  color: hsl(var(--success));
 }
-
 .ps-error {
-  color: hsl(var(--destructive)); /* Use theme variable */
+  color: hsl(var(--destructive));
 }
-
 .ps-info {
-  color: hsl(217.2, 91.2%, 59.8%); /* Consider making this a theme variable if used often */
+  color: hsl(217.2, 91.2%, 59.8%);
 }
-
 .ps-command {
-  color: hsl(var(--warning)); /* Using warning color for commands, adjust if needed */
+  color: hsl(var(--warning));
 }
 
 .search-highlight {
@@ -132,81 +112,255 @@
   border-radius: 0.125rem;
   padding: 0 0.125rem;
 }
-
 .dark .search-highlight {
   background-color: hsla(var(--search-highlight-bg), 0.4);
 }
 
-/* Custom overrides for highlight.js using CSS variables */
-.hljs {
-  color: hsl(var(--foreground)); /* Default text color for code */
-  background: transparent; /* Let parent div provide background */
-  /* Ensure mono font and consistent font size if not inherited properly */
-  /* font-family: var(--font-mono); */
-  /* font-size: inherit; */ /* Or specific value like 0.875rem */
+/* Styling for Shiki-highlighted code in AI chat */
+.ai-chat-code-block .shiki-container > pre.shiki {
+  margin: 0 !important;
+  padding: 0.75rem !important;
+  border-radius: 0 0 0.375rem 0.375rem;
+  overflow-x: auto;
+  line-height: 1.625;
+  font-size: 0.875rem;
+}
+.ai-chat-code-block .shiki-container > pre.shiki code {
+  font-family: var(--font-mono);
+}
+.ai-chat-code-block .shiki-container > pre.shiki .line.highlighted {
+  background-color: hsl(var(--accent) / 0.5);
 }
 
-/* highlight.js default.css applies padding: 1em to pre code.hljs. Adjust if needed. */
-/* pre code.hljs { padding: 1rem; } */
-
-.hljs-keyword,
-.hljs-built_in, /* e.g. console, Math in JS */
-.hljs-type, /* e.g. string, number, boolean types */
-.hljs-selector-tag, /* CSS selectors */
-.hljs-selector-pseudo, /* CSS pseudo-selectors */
-.hljs-meta-keyword {
-  color: hsl(var(--code-keyword));
+/* Fallback styling if Shiki fails or language is not supported */
+.ai-chat-code-block .shiki-container > pre.shiki-fallback {
+  background-color: hsl(var(--muted) / 0.7);
+  color: hsl(var(--foreground));
+  padding: 0.75rem;
+  border-radius: 0 0 0.375rem 0.375rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.625;
+}
+.ai-chat-code-block .shiki-container > pre.shiki-fallback code {
+  white-space: pre-wrap;
 }
 
-.hljs-literal, /* true, false, null */
-.hljs-symbol { /* GraphQL enum values, etc. */
-  color: hsl(var(--code-boolean));
+
+/* Enhanced Tailwind Typography Styles for AI Chat */
+@layer components {
+  .prose { /* General prose enhancements */
+    @apply text-foreground;
+    line-height: 1.7;
+  }
+  .dark .prose {
+    @apply text-foreground;
+  }
+
+  .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+    @apply font-semibold tracking-tight text-foreground;
+  }
+  .dark .prose h1, .dark .prose h2, .dark .prose h3, .dark .prose h4, .dark .prose h5, .dark .prose h6 {
+    @apply text-foreground;
+  }
+  .prose h1 { @apply text-2xl mt-6 mb-3; }
+  .prose h2 { @apply text-xl mt-5 mb-2.5; }
+  .prose h3 { @apply text-lg mt-4 mb-2; }
+
+  .prose p {
+    @apply my-3; /* Consistent paragraph spacing */
+  }
+
+  .prose a {
+    @apply text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium underline underline-offset-2 transition-colors;
+  }
+
+  .prose strong {
+    @apply font-semibold text-foreground;
+  }
+  .dark .prose strong {
+    @apply text-foreground;
+  }
+
+  .prose blockquote {
+    @apply pl-4 italic border-l-4 border-border text-muted-foreground my-4;
+  }
+  .dark .prose blockquote {
+    @apply border-border text-muted-foreground;
+  }
+
+  .prose ul, .prose ol {
+    @apply my-3 pl-6 space-y-1;
+  }
+  .prose ul li::marker {
+    @apply text-muted-foreground;
+  }
+  .prose ol li::marker {
+    @apply text-muted-foreground font-medium;
+  }
+
+  .prose code { /* Inline code */
+    @apply bg-muted/70 text-foreground font-mono text-[0.85em] px-1.5 py-0.5 rounded-sm;
+  }
+  .dark .prose code {
+     @apply bg-muted/70 text-foreground;
+  }
+  /* Prevent prose from overriding Shiki's code block colors */
+  .prose pre code {
+    color: inherit !important;
+    padding: 0 !important;
+    font-size: inherit !important;
+  }
+
+
+  /* Table Styling within Prose */
+  .prose table {
+    @apply w-auto min-w-[50%] my-5 border-collapse border border-border text-sm;
+  }
+  .dark .prose table {
+    @apply border-border;
+  }
+
+  .prose thead {
+    @apply border-b border-border;
+  }
+  .dark .prose thead {
+     @apply border-border;
+  }
+
+  .prose th {
+    @apply border border-border px-3 py-2 text-left font-semibold bg-muted/30 text-foreground;
+  }
+  .dark .prose th {
+    @apply bg-muted/20 border-border text-foreground;
+  }
+
+  .prose tbody tr {
+    @apply border-b border-border transition-colors hover:bg-muted/20;
+  }
+  .dark .prose tbody tr {
+    @apply border-border hover:bg-muted/10;
+  }
+  .prose tbody tr:last-child {
+    @apply border-b-0;
+  }
+
+  .prose td {
+    @apply border border-border px-3 py-2 text-left;
+  }
+  .dark .prose td {
+    @apply border-border;
+  }
+
+  .prose table td, .prose table th {
+    /* font-family: var(--font-mono); */
+  }
+
+  /* Styling for AI_ACTION delimiters if they appear in raw text */
+  .ai-action-delimiter {
+    @apply block font-mono text-xs px-2 py-1 rounded-sm my-1;
+  }
+  .ai-action-delimiter-start {
+    @apply bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 border border-blue-300 dark:border-blue-700;
+  }
+  .ai-action-delimiter-end {
+    @apply bg-gray-100 text-gray-600 dark:bg-gray-700/50 dark:text-gray-300 border border-gray-300 dark:border-gray-600;
+  }
+
+  /* --- AI Action Progress Bar Styles --- */
+  .ai-action-progress-bar-container {
+    @apply my-4 p-3 border border-border rounded-lg bg-muted/30;
+  }
+
+  .ai-action-step {
+    @apply flex items-start space-x-3 py-2.5; /* Increased py for more space */
+    /* Add a subtle bottom border for separation, except for the last child */
+    @apply border-b border-border/50;
+  }
+  .ai-action-progress-bar-container .ai-action-step:last-child {
+    @apply border-b-0 pb-1; /* Remove border and reduce padding for last item */
+  }
+   .ai-action-step.step-active { /* Style for the currently processing step */
+    @apply bg-accent/30 -mx-3 px-3 rounded-md;
+  }
+
+
+  .ai-action-step-indicator-wrapper {
+    @apply flex flex-col items-center pt-0.5; /* Align icon with first line of text */
+  }
+
+  .ai-action-step-icon { /* For the main action type icon */
+    @apply h-5 w-5 text-primary shrink-0;
+  }
+  .ai-action-step-status-icon { /* For check, loader, error icons */
+    @apply h-5 w-5 shrink-0;
+  }
+  .ai-action-step-status-icon.status-pending {
+    @apply text-muted-foreground animate-spin;
+  }
+  .ai-action-step-status-icon.status-success {
+    @apply text-success;
+  }
+  .ai-action-step-status-icon.status-error {
+    @apply text-destructive;
+  }
+  .ai-action-step-status-icon.status-idle { /* For steps not yet started */
+    @apply text-muted-foreground opacity-50;
+  }
+
+
+  .ai-action-step-content {
+    @apply flex-1 min-w-0; /* Allow content to shrink and wrap */
+  }
+
+  .ai-action-step-description {
+    @apply text-sm font-medium text-foreground;
+  }
+  .ai-action-step-description.description-completed {
+    @apply text-muted-foreground line-through;
+  }
+
+
+  .ai-action-command-box {
+    @apply mt-1.5 p-2.5 bg-background border border-border rounded-md text-xs font-mono text-foreground whitespace-pre-wrap break-all;
+  }
+  .dark .ai-action-command-box {
+    @apply bg-muted/40 border-border;
+  }
+
+  .ai-action-file-details {
+    @apply mt-1 text-xs text-muted-foreground italic;
+  }
+  .ai-action-file-details code { /* Inline code within file details */
+     @apply bg-transparent p-0 font-normal text-muted-foreground;
+  }
+
+  .ai-action-error-message {
+    @apply mt-1 text-xs text-destructive bg-destructive/10 p-2 rounded-md;
+  }
 }
 
-.hljs-number { color: hsl(var(--code-number)); }
 
-.hljs-regexp,
-.hljs-string,
-.hljs-char.escape_, /* escape sequences */
-.hljs-template-variable, /* ${var} in template strings */
-.hljs-meta-string {
+/* Live string highlighting during typing */
+.live-string-double,
+.live-string-single,
+.live-string-backtick {
   color: hsl(var(--code-string));
 }
 
-.hljs-comment,
-.hljs-quote { /* Markdown blockquotes */
-  color: hsl(var(--code-comment));
-  font-style: italic;
+.prose .live-string-double,
+.prose .live-string-single,
+.prose .live-string-backtick {
+  color: hsl(var(--code-string)) !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  border-radius: 0 !important;
 }
 
-.hljs-tag .hljs-name { color: hsl(var(--code-tag)); } /* Tag name itself */
-.hljs-attr, /* Attribute name, CSS properties, JSON keys */
-.hljs-property, /* alias for attr in some languages */
-.hljs-selector-attr,
-.hljs-variable.language_ { /* CSS variables --foo */
-  color: hsl(var(--code-attribute));
-}
-
-.hljs-meta { color: hsl(var(--code-comment)); } /* e.g., <!DOCTYPE html>, or @decorators */
-
-.hljs-title.class_, .hljs-title.class_.inherited__, /* Class names */
-.hljs-title.function_ { /* Function names */
-  color: hsl(var(--accent-foreground)); /* Using accent for function/class names */
-}
-
-.hljs-emphasis { font-style: italic; } /* Markdown italic */
-.hljs-strong { font-weight: bold; } /* Markdown bold */
-
-.hljs-link { text-decoration: underline; color: hsl(var(--primary)); } /* Markdown link */
-.hljs-bullet { color: hsl(var(--code-keyword)); } /* Markdown list bullet */
-
-/* Scoped class for AI chat code blocks to ensure pre/code tags behave as expected with highlight.js */
-.ai-chat-code-block pre {
-  background-color: transparent; /* Ensure no conflicting background */
-  padding: 0; /* Remove padding, let code.hljs handle it */
-  margin: 0; /* Remove margin */
-  overflow-x: visible; /* Let code tag handle overflow if needed */
-}
-
-/* The code tag will get padding from highlight.js default.css (pre code.hljs) */
-/* .ai-chat-code-block code.hljs { } */
+.prose :where(pre):not(:where([class~="not-prose"],[class~="not-prose"] *)){
+  color: var(--tw-prose-pre-code);
+  background-color: transparent !important;
+ }
