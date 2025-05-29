@@ -2,9 +2,8 @@
 "use client"
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button";
-import { Bot, Sparkles, Trash, Settings, Palette, MonitorPlay, Terminal as TerminalLucideIcon, Sun, Moon, Laptop, AlertCircle } from "lucide-react"
+import { Tabs, TabsList, TabsTrigger, Button, Switch, Label } from "@/components/ui"; // Consolidated imports
+import { Bot, Sparkles, Trash, Settings, Palette, MonitorPlay, Terminal as TerminalLucideIcon, Sun, Moon, Laptop, AlertCircle, ShieldCheck, ShieldOff, Search as SearchIconLucide } from "lucide-react";
 import { toast } from "sonner";
 import { getHighlighter, type Highlighter, type BundledTheme } from 'shiki';
 import { useTheme } from "next-themes";
@@ -12,62 +11,41 @@ import { CODEFORGE_SYSTEM_PROMPT } from '@/lib/system-prompts';
 import { editorThemesList, type EditorTheme } from '@/components/code-editor';
 import { ChatTab } from './sidebar-parts/chat-tab';
 import { SettingsTab } from './sidebar-parts/settings-tab';
-import type { AiActionBlock, AiActionStep } from './sidebar-parts/chat-interface'; 
+import type { AiActionBlock, AiActionStep, MessageType } from './sidebar-parts/chat-interface';
 import { generateId } from "@/lib/utils";
 
 
-interface MessageType {
-  id: string;
-  role: "user" | "assistant";
-  content: string; // For user messages, this is the direct input. For AI, this will be typed out (mainContentBefore, then mainContentAfter)
-  actionBlock?: AiActionBlock | null;
-  timestamp: Date;
-  isTyping?: boolean; // True when the 'content' field is being typed out
-  
-  // Internal state for managing multi-part AI responses
-  _mainContentBefore?: string; // Stores the initial text part from AI JSON
-  _mainContentAfter?: string;  // Stores the final text part from AI JSON
-  _actionsProcessed?: boolean; // Flag: true if actionBlock has been processed
-  _currentTextPart?: 'before' | 'after'; // Indicates which part is currently being typed or should be typed next
-}
-
 interface TypingState {
-  displayedText: string;
   charIndex: number;
 }
 
 
-interface GeminiModel {
-  id: string;
-  name: string;
-}
-interface GeminiContent {
+export interface GeminiContent { // Exporting for use in ChatTab
   role: "user" | "model";
   parts: { text: string }[];
 }
 
-// AI JSON response structure (matching the system prompt)
 interface AiJsonResponse {
   project?: string | null;
   mainContentBefore?: string | null;
-  steps?: Omit<AiActionStep, 'id' | 'currentStatus' | 'output' | 'errorMessage'>[] | null; // Steps from AI don't have client-side state yet
+  steps?: Omit<AiActionStep, 'id' | 'currentStatus' | 'output' | 'errorMessage'>[] | null;
   mainContentAfter?: string | null;
   errorMessage?: string | null;
 }
 
 
-const shikiThemesListForSelect: { name: string; value: BundledTheme }[] = [
-  { name: "GitHub Dark", value: "github-dark" },
-  { name: "GitHub Light", value: "github-light" },
-  { name: "Monokai", value: "monokai" },
-  { name: "Nord", value: "nord" },
-  { name: "Dracula", value: "dracula" },
-  { name: "One Dark Pro", value: "one-dark-pro" },
-  { name: "Solarized Light", value: "solarized-light" },
-  { name: "Solarized Dark", value: "solarized-dark" },
-  { name: "Material Palenight", value: "material-theme-palenight" },
-  { name: "Min Dark", value: "min-dark" },
-  { name: "Min Light", value: "min-light" },
+const shikiThemesListForSelect: { name: string; value: BundledTheme, type: 'light' | 'dark' }[] = [
+  { name: "GitHub Dark", value: "github-dark", type: 'dark' },
+  { name: "GitHub Light", value: "github-light", type: 'light' },
+  { name: "Monokai", value: "monokai", type: 'dark' },
+  { name: "Nord", value: "nord", type: 'dark' },
+  { name: "Dracula", value: "dracula", type: 'dark' },
+  { name: "One Dark Pro", value: "one-dark-pro", type: 'dark' },
+  { name: "Solarized Light", value: "solarized-light", type: 'light' },
+  { name: "Solarized Dark", value: "solarized-dark", type: 'dark' },
+  { name: "Material Palenight", value: "material-theme-palenight", type: 'dark' },
+  { name: "Min Dark", value: "min-dark", type: 'dark' },
+  { name: "Min Light", value: "min-light", type: 'light' },
 ];
 
 const terminalThemesListForSelect: { name: string; value: string }[] = [
@@ -80,20 +58,22 @@ const terminalThemesListForSelect: { name: string; value: string }[] = [
 ];
 
 interface SidebarProps {
-  onRefreshFileTree: () => void; 
+  onRefreshFileTree: () => void;
   onAiOpenFileInEditor: (filePath: string) => Promise<void>;
   onAiExecuteTerminalCommand: (command: string) => Promise<{ success: boolean; output: string }>;
-  onAiCreateFileAndType: (filePath: string, content: string) => Promise<void>;
   setSelectedEditorTheme: React.Dispatch<React.SetStateAction<EditorTheme | undefined>>;
   setSelectedTerminalTheme: React.Dispatch<React.SetStateAction<string | undefined>>;
   currentEditorTheme?: EditorTheme;
   currentTerminalTheme?: string;
+  isTerminalInputDisabled: boolean;
+  setIsTerminalInputDisabled: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export default function Sidebar({ 
-    onRefreshFileTree, onAiOpenFileInEditor, onAiExecuteTerminalCommand, onAiCreateFileAndType,
+export default function Sidebar({
+    onRefreshFileTree, onAiOpenFileInEditor, onAiExecuteTerminalCommand,
     setSelectedEditorTheme: setAppSelectedEditorTheme, setSelectedTerminalTheme: setAppSelectedTerminalTheme,
-    currentEditorTheme: appCurrentEditorTheme, currentTerminalTheme: appCurrentTerminalTheme
+    currentEditorTheme: appCurrentEditorTheme, currentTerminalTheme: appCurrentTerminalTheme,
+    isTerminalInputDisabled, setIsTerminalInputDisabled
 }: SidebarProps) {
   const [messages, setMessages] = useState<MessageType[]>([
     {
@@ -120,11 +100,23 @@ export default function Sidebar({
 
   const stopGeneratingRef = useRef(false);
 
-  const { theme: appTheme, setTheme: setAppTheme } = useTheme();
+  const { theme: appTheme, setTheme: setAppTheme, resolvedTheme } = useTheme();
 
-  const [selectedShikiTheme, setSelectedShikiTheme] = useState<BundledTheme>(
-    (appCurrentEditorTheme === 'vs' || appCurrentEditorTheme === 'hc-light' ? 'github-light' : 'github-dark') as BundledTheme
-  );
+  const getInitialShikiTheme = useCallback((currentAppTheme?: string, currentResolvedTheme?: string) => {
+    let themeModeToUse = 'dark';
+    if (currentAppTheme && currentAppTheme !== 'system') {
+        if (currentAppTheme === 'light' || currentAppTheme === 'sandstone') themeModeToUse = 'light';
+        else if (currentAppTheme === 'dark' || currentAppTheme === 'midnight-blue') themeModeToUse = 'dark';
+        else if (currentResolvedTheme) themeModeToUse = currentResolvedTheme;
+    } else if (currentResolvedTheme) {
+        themeModeToUse = currentResolvedTheme;
+    }
+    return themeModeToUse === 'dark' ? 'github-dark' : 'github-light';
+  }, []);
+
+  const [selectedShikiTheme, setSelectedShikiTheme] = useState<BundledTheme>(getInitialShikiTheme(appTheme, resolvedTheme));
+
+
   const [selectedEditorThemeInternal, setSelectedEditorThemeInternal] = useState<EditorTheme | undefined>(
     appCurrentEditorTheme
   );
@@ -133,20 +125,36 @@ export default function Sidebar({
   );
 
   useEffect(() => {
-    const defaultEditorTheme: EditorTheme = appTheme === 'dark' || appTheme === 'system' ? 'vs-dark' : 'vs';
-    const defaultTerminalTheme = appTheme === 'dark' || appTheme === 'system' ? 'dark' : 'light';
-    const defaultShikiTheme: BundledTheme = appTheme === 'dark' || appTheme === 'system' ? 'github-dark' : 'github-light';
+    let currentMode: 'light' | 'dark' = 'light';
 
-    if (!editorThemesList.find(t => t.value === selectedEditorThemeInternal)) {
-        setSelectedEditorThemeInternal(defaultEditorTheme);
+    if (appTheme === 'system') {
+      currentMode = resolvedTheme === 'dark' ? 'dark' : 'light';
+    } else if (appTheme === 'light' || appTheme === 'sandstone') {
+      currentMode = 'light';
+    } else if (appTheme === 'dark' || appTheme === 'midnight-blue') {
+      currentMode = 'dark';
+    } else if (resolvedTheme) {
+        currentMode = resolvedTheme as 'light' | 'dark';
     }
-    if (!terminalThemesListForSelect.find(t => t.value === selectedTerminalThemeInternal)) {
-        setSelectedTerminalThemeInternal(defaultTerminalTheme);
+
+    const currentShikiThemeInfo = shikiThemesListForSelect.find(t => t.value === selectedShikiTheme);
+    if (currentShikiThemeInfo?.type !== currentMode) {
+      setSelectedShikiTheme(currentMode === 'dark' ? 'github-dark' : 'github-light');
     }
-    if (!shikiThemesListForSelect.find(t => t.value === selectedShikiTheme)) {
-        setSelectedShikiTheme(defaultShikiTheme);
+
+    const newEditorTheme: EditorTheme = currentMode === 'dark' ? 'vs-dark' : 'vs';
+    if (selectedEditorThemeInternal !== newEditorTheme) {
+      setSelectedEditorThemeInternal(newEditorTheme);
+      if (setAppSelectedEditorTheme) setAppSelectedEditorTheme(newEditorTheme);
     }
-  }, [appTheme, selectedEditorThemeInternal, selectedTerminalThemeInternal, selectedShikiTheme]);
+    
+    const newTerminalTheme = currentMode === 'dark' ? 'dark' : 'light';
+    if (selectedTerminalThemeInternal !== newTerminalTheme) {
+      setSelectedTerminalThemeInternal(newTerminalTheme);
+      if (setAppSelectedTerminalTheme) setAppSelectedTerminalTheme(newTerminalTheme);
+    }
+  }, [appTheme, resolvedTheme, selectedShikiTheme, selectedEditorThemeInternal, selectedTerminalThemeInternal, setAppSelectedEditorTheme, setAppSelectedTerminalTheme]);
+
 
   useEffect(() => {
     let isMounted = true;
@@ -154,7 +162,7 @@ export default function Sidebar({
       try {
         const shikiHighlighter = await getHighlighter({
           themes: shikiThemesListForSelect.map(t => t.value),
-          langs: [ 
+          langs: [
             'javascript', 'js', 'typescript', 'ts', 'python', 'py', 'jsx', 'tsx',
             'html', 'css', 'json', 'yaml', 'markdown', 'md', 'bash', 'shell', 'sh',
             'java', 'csharp', 'cs', 'cpp', 'c', 'go', 'rust', 'php', 'ruby', 'sql',
@@ -176,73 +184,88 @@ export default function Sidebar({
     messages.forEach(message => {
       if (message.isTyping && message.role === 'assistant') {
         const textToType = message._currentTextPart === 'before' ? message._mainContentBefore : message._mainContentAfter;
-        if (!textToType) { // If no text for current part, mark as not typing
+
+        if (!textToType) {
           setMessages(prevMsgs => prevMsgs.map(m => m.id === message.id ? { ...m, isTyping: false } : m));
+          setTypingStates(prev => {
+            const newStates = {...prev};
+            if (newStates[message.id]) delete newStates[message.id];
+            return newStates;
+          });
           return;
         }
 
-        if (stopGeneratingRef.current && message.id === messages.find(m => m.isTyping && m.role === 'assistant')?.id) {
+        const intervalId = setInterval(() => {
+          if (stopGeneratingRef.current && message.id === messages.find(m => m.isTyping && m.role === 'assistant')?.id) {
+            clearInterval(intervalId);
+            setMessages(prevMsgs => prevMsgs.map(m => {
+                if (m.id === message.id) {
+                    const currentProgress = typingStates[m.id]?.charIndex || 0;
+                    const fullText = m._currentTextPart === 'before' ? m._mainContentBefore : m._mainContentAfter;
+                    return { ...m, isTyping: false, content: (fullText || "").substring(0, currentProgress) + " [Stopped]" };
+                }
+                return m;
+            }));
             setTypingStates(prev => {
                 const newStates = {...prev};
-                delete newStates[message.id];
+                if (newStates[message.id]) delete newStates[message.id];
                 return newStates;
             });
-            setMessages(prevMsgs => prevMsgs.map(m => m.id === message.id ? { ...m, isTyping: false, content: (typingStates[message.id]?.displayedText || message.content) + " [Stopped]" } : m));
-            stopGeneratingRef.current = false; 
-            return; 
-        }
+            return;
+          }
 
-        const currentTypingState = typingStates[message.id] || { displayedText: "", charIndex: 0 };
-        if (currentTypingState.charIndex < textToType.length) {
-          const intervalDelay = Math.max(1, TYPING_SPEED);
-          const intervalId = setInterval(() => {
-            setTypingStates(prevTypingStates => {
-              const state = prevTypingStates[message.id];
-              if (!state || (stopGeneratingRef.current && message.id === messages.find(m => m.isTyping && m.role === 'assistant')?.id)) {
+          setTypingStates(currentStates => {
+            const stateForMessage = currentStates[message.id] || { charIndex: 0 };
+            let newCharIndex = stateForMessage.charIndex;
+
+            const currentMessageBeingTyped = messages.find(m => m.id === message.id);
+            const currentTextToType = currentMessageBeingTyped
+              ? (currentMessageBeingTyped._currentTextPart === 'before' ? currentMessageBeingTyped._mainContentBefore : currentMessageBeingTyped._mainContentAfter)
+              : textToType;
+
+
+            if (newCharIndex < (currentTextToType || "").length) {
+              newCharIndex++;
+              const newDisplayedText = (currentTextToType || "").substring(0, newCharIndex);
+              const isFinished = newCharIndex >= (currentTextToType || "").length;
+
+              setMessages(prevMsgs => prevMsgs.map(m =>
+                  m.id === message.id ? { ...m, content: newDisplayedText, isTyping: !isFinished } : m
+              ));
+
+              if (isFinished) {
                 clearInterval(intervalId);
-                 if (stopGeneratingRef.current && state) { 
-                    setMessages(prevMsgs => prevMsgs.map(m => m.id === message.id ? { ...m, isTyping: false, content: state.displayedText + " [Stopped]" } : m));
-                 }
-                const newStates = { ...prevTypingStates };
-                delete newStates[message.id];
-                if(stopGeneratingRef.current) stopGeneratingRef.current = false;
-                return newStates;
+                const nextTypingStates = { ...currentStates };
+                delete nextTypingStates[message.id];
+                return nextTypingStates;
               }
-
-              if (state.charIndex < textToType.length) {
-                const newCharIndex = state.charIndex + 1;
-                const newDisplayedText = textToType.substring(0, newCharIndex);
-                const isFinished = newCharIndex >= textToType.length;
-                
-                setMessages(prevMsgs => prevMsgs.map(m => m.id === message.id ? { ...m, content: newDisplayedText, isTyping: !isFinished } : m));
-
-                if (isFinished) {
-                  clearInterval(intervalId);
-                  const newStates = { ...prevTypingStates };
-                  delete newStates[message.id];
-                  return newStates;
-                }
-                return { ...prevTypingStates, [message.id]: { displayedText: newDisplayedText, charIndex: newCharIndex } };
-              } else { 
-                clearInterval(intervalId);
-                setMessages(prevMsgs => prevMsgs.map(m => m.id === message.id && m.isTyping ? { ...m, isTyping: false } : m));
-                const newStates = { ...prevTypingStates };
-                delete newStates[message.id];
-                return newStates;
-              }
-            });
-          }, intervalDelay);
-          activeIntervals.push(intervalId);
-        } else if (currentTypingState.charIndex >= textToType.length && textToType.length > 0) {
-           setMessages(prevMsgs => prevMsgs.map(m => m.id === message.id ? { ...m, isTyping: false } : m));
-           setTypingStates(prev => { const newStates = {...prev}; delete newStates[message.id]; return newStates; });
-        }
+              return { ...currentStates, [message.id]: { charIndex: newCharIndex } };
+            } else {
+              clearInterval(intervalId);
+              setMessages(prevMsgs => prevMsgs.map(m => m.id === message.id && m.isTyping ? { ...m, isTyping: false } : m));
+              const nextTypingStates = { ...currentStates };
+              delete nextTypingStates[message.id];
+              return nextTypingStates;
+            }
+          });
+        }, TYPING_SPEED);
+        activeIntervals.push(intervalId);
       } else if (!message.isTyping && typingStates[message.id]) {
-        setTypingStates(prev => { const newStates = {...prev}; delete newStates[message.id]; return newStates; });
+         setTypingStates(prev => {
+             const newStates = {...prev};
+             if (newStates[message.id]) delete newStates[message.id];
+             return newStates;
+         });
       }
     });
+
+    if (stopGeneratingRef.current && !messages.some(m => m.isTyping && m.role === 'assistant')) {
+        stopGeneratingRef.current = false;
+    }
+
     return () => { activeIntervals.forEach(clearInterval); };
-  }, [messages, TYPING_SPEED]); // Removed typingStates from deps to avoid re-triggering on its own update
+  }, [messages, TYPING_SPEED, setMessages, setTypingStates, stopGeneratingRef]);
+
 
   const handleVerifyApiKey = useCallback(async () => {
     if (!apiKeyInputValue.trim()) { toast.error("API Key cannot be empty."); return; }
@@ -264,8 +287,8 @@ export default function Sidebar({
       } else {
         setAvailableModels(fetchedModels); setActiveApiKey(apiKeyInputValue.trim());
         const flashModel = fetchedModels.find(m => m.id.includes('flash'));
-        const proModel = fetchedModels.find(m => m.id.includes('pro') && !m.id.includes('vision')); 
-        
+        const proModel = fetchedModels.find(m => m.id.includes('pro') && !m.id.includes('vision'));
+
         if (flashModel) {
             setSelectedModel(flashModel.id);
         } else if (proModel) {
@@ -284,40 +307,58 @@ export default function Sidebar({
     }
   }, [apiKeyInputValue]);
 
-  const handleSendMessage = useCallback(async () => {
-    if (!inputValue.trim() || !activeApiKey || !selectedModel) {
-      if(!activeApiKey) toast.error("Set API Key in Settings.");
-      if(!selectedModel && activeApiKey) toast.error("Select a model in Settings.");
+  const handleSendMessage = useCallback(async (
+    isReprompt: boolean = false,
+    repromptHistoryWithContext?: GeminiContent[]
+  ) => {
+    if (!inputValue.trim() && !isReprompt) {
+      toast.error("Message cannot be empty.");
+      return;
+    }
+    if (!activeApiKey || !selectedModel) {
+      if (!activeApiKey) toast.error("Set API Key in Settings.");
+      if (!selectedModel && activeApiKey) toast.error("Select a model in Settings.");
       return;
     }
     stopGeneratingRef.current = false;
-    const newUserMessage: MessageType = { id: Date.now().toString(), role: "user", content: inputValue, timestamp: new Date(), isTyping: false };
-    setMessages((prev) => [...prev, newUserMessage]);
-    const currentInput = inputValue; setInputValue(""); setIsAISending(true);
+    const currentInput = inputValue;
 
-    const uiConversationHistory: GeminiContent[] = messages
-      .filter(msg => !(msg.role === 'assistant' && msg.content.startsWith("Hello! I'm CodeForge") && messages.length <=2))
-      .filter(msg => msg.role === 'user' || (msg.role === 'assistant' && !msg.isTyping && !msg.actionBlock)) // Exclude messages with action blocks that are being processed or were just placeholders
-      .map(msg => ({ role: msg.role === 'user' ? 'user' : 'model', parts: [{ text: msg.content }] }));
+    if (!isReprompt) {
+      const newUserMessage: MessageType = { id: Date.now().toString(), role: "user", content: currentInput, timestamp: new Date(), isTyping: false };
+      setMessages((prev) => [...prev, newUserMessage]);
+      setInputValue("");
+    }
+    setIsAISending(true);
 
-    const apiRequestBody = { contents: [...uiConversationHistory, { role: 'user' as const, parts: [{ text: currentInput }] }], systemInstruction: { parts: [{ text: CODEFORGE_SYSTEM_PROMPT }] } };
+    const contentsForApi: GeminiContent[] = repromptHistoryWithContext
+      ? repromptHistoryWithContext
+      : [ 
+          ...messages
+            .filter(msg => !(msg.role === 'assistant' && msg.content.startsWith("Hello! I'm CodeForge") && messages.length <= 2))
+            .filter(msg => msg.role === 'user' || (msg.role === 'assistant' && !msg.isTyping && !msg.actionBlock && !msg._isSearchResultContext)) 
+            .map(msg => ({ role: msg.role === 'user' ? 'user' : 'model', parts: [{ text: msg.content }] })),
+          { role: 'user' as const, parts: [{ text: currentInput }] } 
+        ];
     
+    const apiRequestBody = {
+      contents: contentsForApi,
+      systemInstruction: { parts: [{ text: CODEFORGE_SYSTEM_PROMPT }] }
+    };
+
     const aiMessageId = (Date.now() + 1).toString();
-    // Initial placeholder for the AI message
-    const placeholderAiMessage: MessageType = { 
-      id: aiMessageId, 
-      role: "assistant", 
-      content: "", // Will be filled by typing animation
+    const placeholderAiMessage: MessageType = {
+      id: aiMessageId,
+      role: "assistant",
+      content: "",
       actionBlock: null,
-      timestamp: new Date(), 
-      isTyping: false, // Will be set to true once content is ready to be typed
+      timestamp: new Date(),
+      isTyping: false, 
       _mainContentBefore: "",
       _mainContentAfter: "",
       _actionsProcessed: false,
       _currentTextPart: 'before',
     };
     setMessages((prev) => [...prev, placeholderAiMessage]);
-    // No initial typing state here, it will be set when content is available
 
     try {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${selectedModel}:generateContent?key=${activeApiKey}`, {
@@ -347,21 +388,32 @@ export default function Sidebar({
             errorMessage: `API Error: ${response.status}`
          });
       }
-      
+
       let parsedResponse: AiJsonResponse;
       let finalMainContentBefore = "";
       let finalActionBlock: AiActionBlock | null = null;
       let finalMainContentAfter = "";
+      let jsonStringToParse = rawAiResponseText.trim(); 
 
       try {
-        parsedResponse = JSON.parse(rawAiResponseText);
+        if (jsonStringToParse.startsWith("```json")) {
+          jsonStringToParse = jsonStringToParse.substring(7);
+        } else if (jsonStringToParse.startsWith("```")) {
+           jsonStringToParse = jsonStringToParse.substring(3);
+        }
+        if (jsonStringToParse.endsWith("```")) {
+          jsonStringToParse = jsonStringToParse.substring(0, jsonStringToParse.length - 3);
+        }
+        jsonStringToParse = jsonStringToParse.trim();
+
+        parsedResponse = JSON.parse(jsonStringToParse);
         finalMainContentBefore = parsedResponse.mainContentBefore || "";
         if (parsedResponse.steps && parsedResponse.steps.length > 0) {
-          finalActionBlock = { 
+          finalActionBlock = {
             project: parsedResponse.project || undefined,
             steps: parsedResponse.steps.map(step => ({
               ...step,
-              id: generateId(), // Client-side unique ID for UI key and state tracking
+              id: generateId(),
               currentStatus: 'idle',
             }))
           };
@@ -373,53 +425,51 @@ export default function Sidebar({
           toast.error(`AI reported an error: ${parsedResponse.errorMessage}`);
         }
       } catch (jsonParseError) {
-        console.error("Failed to parse AI JSON response:", jsonParseError, "Raw response:", rawAiResponseText);
+        console.error("Failed to parse AI JSON response:", jsonParseError, "Raw response was:", rawAiResponseText, "Attempted to parse:", jsonStringToParse);
         finalMainContentBefore = `Error: AI response was not valid JSON.\n\nRaw response:\n\`\`\`text\n${rawAiResponseText}\n\`\`\``;
         toast.error("AI response was not valid JSON. Displaying raw output.");
       }
 
       if (stopGeneratingRef.current) {
-        setMessages(prev => prev.map(msg => msg.id === aiMessageId ? { ...msg, content: (typingStates[aiMessageId]?.displayedText || msg.content) + " [Stopped by user]", actionBlock: null, isTyping: false, _actionsProcessed: true } : msg));
+        setMessages(prev => prev.map(msg => msg.id === aiMessageId ? { ...msg, content: (typingStates[aiMessageId] ? (msg._currentTextPart === 'before' ? msg._mainContentBefore : msg._mainContentAfter) : msg.content || "").substring(0, typingStates[aiMessageId]?.charIndex || 0) + " [Stopped by user]", actionBlock: null, isTyping: false, _actionsProcessed: true } : msg));
         setIsAISending(false);
         stopGeneratingRef.current = false;
         return;
       }
 
-      setMessages(prev => prev.map(msg => 
-        msg.id === aiMessageId ? { 
-          ...msg, 
-          content: "", // Start with empty content for typing
-          actionBlock: finalActionBlock, 
-          isTyping: !!(finalMainContentBefore), // Start typing if there's 'before' content
+      setMessages(prev => prev.map(msg =>
+        msg.id === aiMessageId ? {
+          ...msg,
+          content: "",
+          actionBlock: finalActionBlock,
+          isTyping: !!(finalMainContentBefore),
           _mainContentBefore: finalMainContentBefore,
           _mainContentAfter: finalMainContentAfter,
           _currentTextPart: 'before',
-          _actionsProcessed: !finalActionBlock, // If no actions, mark as processed
+          _actionsProcessed: !finalActionBlock, 
         } : msg
       ));
 
       if (finalMainContentBefore && TYPING_SPEED > 0) {
-        setTypingStates(prev => ({...prev, [aiMessageId]: { displayedText: "", charIndex: 0 }}));
+        setTypingStates(prev => ({...prev, [aiMessageId]: { charIndex: 0 }}));
       } else if (!finalMainContentBefore && finalActionBlock) {
-        // If no 'before' content but there are actions, ChatInterface useEffect will pick it up
+        // Action processing will be handled by ChatInterface's useEffect
       } else if (!finalMainContentBefore && !finalActionBlock && finalMainContentAfter) {
-        // No 'before' content, no actions, but 'after' content -> start typing 'after'
-         setMessages(prev => prev.map(msg => 
-            msg.id === aiMessageId ? { 
-            ...msg, 
+         setMessages(prev => prev.map(msg =>
+            msg.id === aiMessageId ? {
+            ...msg,
             content: "",
             isTyping: true,
             _currentTextPart: 'after',
-            _mainContentBefore: finalMainContentAfter, // Use _mainContentBefore to drive typing
+            _mainContentBefore: finalMainContentAfter, 
             _mainContentAfter: "", 
-            _actionsProcessed: true,
+            _actionsProcessed: true, 
             } : msg
         ));
         if (TYPING_SPEED > 0) {
-            setTypingStates(prev => ({...prev, [aiMessageId]: { displayedText: "", charIndex: 0 }}));
+            setTypingStates(prev => ({...prev, [aiMessageId]: { charIndex: 0 }}));
         }
       } else if (!finalMainContentBefore && !finalActionBlock && !finalMainContentAfter) {
-        // Completely empty response from AI (after parsing)
         setMessages(prev => prev.map(msg => msg.id === aiMessageId ? {...msg, content: "[Empty Response]", isTyping: false, _actionsProcessed: true} : msg));
       }
 
@@ -433,23 +483,21 @@ export default function Sidebar({
     } finally {
       setIsAISending(false);
     }
-  }, [inputValue, activeApiKey, selectedModel, messages, TYPING_SPEED]); // Added TYPING_SPEED
+  }, [inputValue, activeApiKey, selectedModel, messages, TYPING_SPEED, setTypingStates, setMessages, setInputValue, setIsAISending]);
 
   const handleStopGenerating = useCallback(() => {
     stopGeneratingRef.current = true;
-    setIsAISending(false); 
-    
-    setMessages(prevMessages => 
+    setIsAISending(false);
+    setMessages(prevMessages =>
       prevMessages.map(msg => {
         if (msg.role === 'assistant' && msg.isTyping) {
-          return { ...msg, isTyping: false, content: (typingStates[msg.id]?.displayedText || msg.content) + " [Stopped]" };
+          return { ...msg, isTyping: false }; 
         }
         return msg;
       })
     );
-    setTypingStates({});
     toast.info("AI response generation stopped.");
-  }, [typingStates]);
+  }, [setMessages, setIsAISending]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
@@ -489,9 +537,7 @@ export default function Sidebar({
 
         <ChatTab
           messages={messages}
-          setMessages={setMessages} // Pass setMessages for action updates
-          typingStates={typingStates}
-          setTypingStates={setTypingStates} // Pass setTypingStates
+          setMessages={setMessages}
           inputValue={inputValue}
           onInputChange={setInputValue}
           onSendMessage={handleSendMessage}
@@ -506,10 +552,8 @@ export default function Sidebar({
           enableCopy={enableCopy}
           typingSpeed={TYPING_SPEED}
           onStopGenerating={handleStopGenerating}
-          // Pass AI action handlers
           onAiOpenFileInEditor={onAiOpenFileInEditor}
           onAiExecuteTerminalCommand={onAiExecuteTerminalCommand}
-          onAiCreateFileAndType={onAiCreateFileAndType}
           onRefreshFileTree={onRefreshFileTree}
         />
 
@@ -527,13 +571,15 @@ export default function Sidebar({
           onAppThemeChange={(value) => { if (setAppTheme) setAppTheme(value); }}
           selectedShikiTheme={selectedShikiTheme}
           onShikiThemeChange={(value) => setSelectedShikiTheme(value as BundledTheme)}
-          shikiThemesList={shikiThemesListForSelect}
-          selectedEditorTheme={selectedEditorThemeInternal || (appTheme === 'dark' || appTheme === 'system' ? 'vs-dark' : 'vs')}
+          shikiThemesList={shikiThemesListForSelect.map(t => ({name: t.name, value: t.value}))}
+          selectedEditorTheme={selectedEditorThemeInternal || (resolvedTheme === 'dark' ? 'vs-dark' : 'vs')}
           onEditorThemeChange={(value) => { setSelectedEditorThemeInternal(value as EditorTheme); if(setAppSelectedEditorTheme) setAppSelectedEditorTheme(value as EditorTheme);}}
           editorThemesList={editorThemesList}
-          selectedTerminalTheme={selectedTerminalThemeInternal || (appTheme === 'dark' || appTheme === 'system' ? 'dark' : 'light')}
+          selectedTerminalTheme={selectedTerminalThemeInternal || (resolvedTheme === 'dark' ? 'dark' : 'light')}
           onTerminalThemeChange={(value) => { setSelectedTerminalThemeInternal(value); if(setAppSelectedTerminalTheme) setAppSelectedTerminalTheme(value);}}
           terminalThemesList={terminalThemesListForSelect}
+          isTerminalInputDisabled={isTerminalInputDisabled}
+          setIsTerminalInputDisabled={setIsTerminalInputDisabled}
         />
       </Tabs>
     </div>

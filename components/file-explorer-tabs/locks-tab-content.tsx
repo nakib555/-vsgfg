@@ -5,23 +5,12 @@ import * as React from "react"
 import { useState, useMemo } from "react"
 import { Lock, Unlock, ListFilter } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { FileTreeItem } from "@/types/file" // CodeFile not needed
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import type { FileTreeItem } from "@/types/file"
+import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuLabel, DropdownMenuSeparator, ScrollArea } from "@/components/ui" // Consolidated imports
 import { toast } from "sonner"
 
 interface LocksTabContentProps {
-  fileTree: FileTreeItem[]; // Changed from 'files'
+  fileTree: FileTreeItem[]; 
   getFileIcon: (fileName: string, itemPath?: string, isDirectory?: boolean) => React.ReactNode;
   isExplorerLocked: boolean;
   rootDirectoryName: string;
@@ -46,9 +35,8 @@ export function LocksTabContent({
         }
       }
     };
-    traverse(fileTree); // fileTree is already the root [] containing "my_project"
+    traverse(fileTree); 
     
-    // Sort by path after flattening
     items.sort((a, b) => a.path.localeCompare(b.path));
     return items;
   }, [fileTree]);
@@ -141,7 +129,7 @@ export function LocksTabContent({
           const isItemEffectivelyLocked = isExplorerLocked || lockedItemPaths.has(item.path)
           return (
             <div
-              key={`lock-${item.id}`} // Use item.id
+              key={`lock-${item.id}`} 
               className="flex items-center justify-between p-1.5 hover:bg-muted/20 rounded-sm"
             >
               <div className="flex items-center space-x-2 truncate">

@@ -6,10 +6,10 @@ import { useState, useMemo, useEffect, useCallback } from "react"
 import {
   Folder as FolderIconMdi,
   FolderOpen as FolderOpenIconMdi,
-  FolderCogOutline,       // For services, lib, utils, hooks, config folders
-  FolderZipOutline,       // For src, app folders (replacement for FolderCodeOutline)
-  FolderMultipleOutline,  // For components, ui folders (replacement for FolderPuzzleOutline)
-  Npm as NpmIcon,           // For node_modules (replacement for FolderNpmOutline)
+  FolderCogOutline,
+  FolderZipOutline,
+  FolderMultipleOutline,
+  Npm as NpmIcon,
   Git as GitIconMdi,
   FileDocumentOutline,
   LanguageJavascript,
@@ -23,7 +23,7 @@ import {
   FileImageOutline,
   FileSettingsOutline,
   CogOutline,
-  FolderMultipleOutline as FolderExplorerIconMdi, // For "Files" tab
+  FolderMultipleOutline as FolderExplorerIconMdi, 
   Magnify as SearchIconMdi,
   Lock as LockTabIconMdi,
 } from "mdi-material-ui";
@@ -31,7 +31,7 @@ import {
 import { ChevronRight, ChevronDown } from "lucide-react";
 
 import type { CodeFile, FileTreeItem } from "@/types/file"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger, ScrollArea } from "@/components/ui" // Consolidated import
 import { cn } from "@/lib/utils";
 
 import { FilesTabContent } from "./file-explorer-tabs/files-tab-content"
@@ -88,7 +88,7 @@ export default function FileExplorer({
 
       if (folderName === 'src' || folderName === 'app') return <FolderZipOutline {...iconProps} className={cn(iconProps.className, folderColor)} />;
       if (folderName === 'components' || folderName === 'ui') return <FolderMultipleOutline {...iconProps} className={cn(iconProps.className, folderColor)} />;
-      if (folderName === 'node_modules') return <NpmIcon {...iconProps} className={cn(iconProps.className, folderColor)} />; // Using Npm icon directly
+      if (folderName === 'node_modules') return <NpmIcon {...iconProps} className={cn(iconProps.className, folderColor)} />; 
       if (folderName === '.git') return <GitIconMdi {...iconProps} className={cn(iconProps.className, folderColor)} />;
       if (folderName === 'services' || folderName === 'lib' || folderName === 'utils' || folderName === 'hooks' || folderName === 'config') return <FolderCogOutline {...iconProps} className={cn(iconProps.className, folderColor)} />;
       

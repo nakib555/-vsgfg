@@ -2,10 +2,10 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter, JetBrains_Mono } from "next/font/google"
-import "./globals.css" // This should be the primary global CSS
+import "./globals.css"
+import "katex/dist/katex.min.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/sonner"
-
+import { SonnerToaster as Toaster } from "@/components/ui"; // Updated import for SonnerToaster
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const jetbrainsMono = JetBrains_Mono({
@@ -16,7 +16,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "AI Coding Assistant",
   description: "A modern IDE with AI assistance for coding",
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -27,13 +27,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}>
-        <ThemeProvider 
-          attribute="class" 
-          defaultTheme="system" // Changed to system to respect user's OS preference initially
-          enableSystem 
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
           disableTransitionOnChange
+          themes={['light', 'dark', 'system', 'midnight-blue', 'sandstone']}
         >
-          <Toaster />
+          <Toaster /> {/* This will now use the SonnerToaster from components/ui/feedback.tsx */}
           {children}
         </ThemeProvider>
       </body>

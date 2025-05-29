@@ -34,11 +34,9 @@ export function convertAsciiTableToMarkdown(text: string): string {
     if (headerCells.length === 0) return block;
 
     const separatorParts = separatorLine.split('|').slice(1, -1).map(part => part.trim());
-    if (separatorParts.length !== headerCells.length && separatorParts.length > 0) { // Allow for tables with just header and separator
+    // if (separatorParts.length !== headerCells.length && separatorParts.length > 0) { 
         // If separator parts don't match header, but separator is valid, try to use header cell count
-        // This is a bit of a guess for malformed tables.
-    }
-
+    // }
 
     const columnAlignments = headerCells.map((_, idx) => {
         const part = separatorParts[idx] || '---'; // Default to '---' if separator is short
@@ -54,7 +52,6 @@ export function convertAsciiTableToMarkdown(text: string): string {
     for (let i = 2; i < block.length; i++) {
         if (block[i].trim().startsWith('|')) {
             const dataCells = block[i].split('|').slice(1, -1).map(cell => cell.trim());
-            // Pad dataCells if shorter than headerCells
             while(dataCells.length < headerCells.length) {
                 dataCells.push('');
             }
@@ -111,7 +108,7 @@ export function convertAsciiTableToMarkdown(text: string): string {
     const trimmedLine = line.trim();
     if (trimmedLine.startsWith('|') || (trimmedLine.startsWith('+') && trimmedLine.includes('-'))) {
       if (!inPotentialTable) {
-        if (tableBlock.length > 0) { // Push previous non-table lines
+        if (tableBlock.length > 0) { 
           outputLines.push(...tableBlock);
           tableBlock = [];
         }
@@ -138,33 +135,77 @@ export function convertAsciiTableToMarkdown(text: string): string {
 }
 
 
-/**
- * Applies very basic live highlighting for strings.
- * This is intended for use during typing animation before full Shiki processing.
- * It's not a full lexer and will have limitations (e.g., escaped quotes within strings).
- */
 export function liveHighlightStrings(text: string): string {
   if (!text) return "";
 
-  // IMPORTANT: Process longer delimiters first to avoid conflicts (e.g., ` before ')
-  let highlightedText = text;
+  // 1. Protect triple backticks by replacing them with a unique placeholder.
+  // Using a more unique placeholder to avoid accidental matches.
+  const tripleBacktickPlaceholder = `___TRIPLE_BACKTICK_PLACEHOLDER_${Date.now()}___`;
+  let highlightedText = text.replace(/```/g, tripleBacktickPlaceholder);
 
-  // Backticks (Template Literals) - handle multiline and escaped backticks simply
-  highlightedText = highlightedText.replace(
-    /`([\s\S]*?)`/g,
-    (match) => `<span class="live-string-backtick">${match}</span>`
-  );
-
-  // Double-quoted strings - handle escaped double quotes simply
+  // 2. Highlight double-quoted strings.
   highlightedText = highlightedText.replace(
     /"((?:\\.|[^"\\])*)"/g,
     (match) => `<span class="live-string-double">${match}</span>`
   );
-  
-  // Single-quoted strings - handle escaped single quotes simply
+
+  // 3. Highlight single-quoted strings.
   highlightedText = highlightedText.replace(
     /'((?:\\.|[^'\\])*)'/g,
     (match) => `<span class="live-string-single">${match}</span>`
+  );
+
+  // 4. Highlight single-backtick inline code.
+  // This regex is designed to match `content` where `content` does not contain newlines or backticks,
+  // and the surrounding backticks are truly single (not part of `` or ``` which are handled by placeholder).
+  highlightedText = highlightedText.replace(
+    // Explanation of this regex:
+    // (?<!`) - Negative lookbehind: asserts that the character immediately preceding the first captured backtick is NOT a backtick.
+    //         This helps ensure we're not starting in the middle of ` `` ` or ` ``` `.
+    // (`): Captures the opening single backtick.
+    // (?!`) - Negative lookahead: asserts that the character immediately following the first captured backtick is NOT a backtick.
+    //         This helps ensure it's a single ` and not the start of ` `` `.
+    // ([^`\n]+?): Captures the content. This matches one or more characters that are NOT a backtick (`) and NOT a newline (\n).
+    //             The `+?` makes it non-greedy.
+    // (?<!`) - Negative lookbehind for the closing backtick.
+    // (`): Captures the closing single backtick.
+    // (?!`) - Negative lookahead for the closing backtick.
+    /(?<!`)(`)(?!`)([^`\n]+?)(?<!`)(`)(?!`)/g,
+    (match) => `<span class="live-string-backtick">${match}</span>`
+  );
+
+  // 5. Restore triple backticks from the placeholder.
+  // Escape the placeholder for use in RegExp if it contains special characters (though ours doesn't here).
+  const escapedPlaceholder = tripleBacktickPlaceholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return highlightedText.replace(new RegExp(escapedPlaceholder, 'g'), "```");
+}
+
+export function liveHighlightMath(text: string): string {
+  if (!text) return "";
+  let highlightedText = text;
+
+  // Block math: $$ ... $$ (captures content between $$)
+  // Ensure it doesn't greedily consume multiple blocks if AI types $$ ... $$ ... $$
+  highlightedText = highlightedText.replace(
+    /(\$\$)([\s\S]*?)(\$\$)/g,
+    (match, p1, p2, p3) => {
+      // p1 is $$, p2 is content, p3 is $$
+      return `<span class="live-math-block-delimiter">${p1}</span><span class="live-math-block-content">${p2}</span><span class="live-math-block-delimiter">${p3}</span>`;
+    }
+  );
+
+  // Inline math: $ ... $ (captures content between non-escaped $)
+  // This regex attempts to be more careful:
+  // - (?<!\$): Negative lookbehind to ensure the first $ is not part of a $$
+  // - (?<!\\)\$: Matches a $ not preceded by a backslash (to allow \$ in text)
+  // - ([^$\n]+?): Non-greedy match for content that is not a $ or a newline.
+  // - (?<!\\)\$: Matches the closing $ not preceded by a backslash.
+  // - (?!\$): Negative lookahead to ensure the closing $ is not part of a $$
+  highlightedText = highlightedText.replace(
+    /(?<!\$)(?<!\\)\$([^$\n]+?)(?<!\\)\$(?!\$)/g,
+    (match, p1) => {
+      return `<span class="live-math-inline-delimiter">$</span><span class="live-math-inline-content">${p1}</span><span class="live-math-inline-delimiter">$</span>`;
+    }
   );
   
   return highlightedText;

@@ -2,12 +2,17 @@
 "use client";
 
 import React from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, Palette, MonitorPlay, Terminal as TerminalLucideIcon, Sun, Moon, Laptop } from "lucide-react";
-import type { EditorTheme } from '@/components/code-editor'; // Assuming EditorTheme is exported
+import { 
+  Input, 
+  Button, 
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue, 
+  Switch, 
+  Label 
+} from "@/components/ui"; // Consolidated imports
+import { AlertCircle, Palette, MonitorPlay, Terminal as TerminalLucideIcon, Sun, Moon, Laptop, Paintbrush, ShieldCheck, ShieldOff } from "lucide-react";
+import type { EditorTheme } from '@/components/code-editor';
 import type { BundledTheme } from 'shiki';
+
 
 interface GeminiModel {
   id: string;
@@ -29,7 +34,7 @@ interface SettingsInterfaceProps {
   selectedModel: string;
   onModelChange: (value: string) => void;
   isLoadingModels: boolean;
-  appTheme?: string; // Made optional as it comes from useTheme
+  appTheme?: string;
   onAppThemeChange: (value: string) => void;
   selectedShikiTheme: BundledTheme;
   onShikiThemeChange: (value: BundledTheme) => void;
@@ -40,6 +45,8 @@ interface SettingsInterfaceProps {
   selectedTerminalTheme: string;
   onTerminalThemeChange: (value: string) => void;
   terminalThemesList: ThemeOption[];
+  isTerminalInputDisabled: boolean;
+  setIsTerminalInputDisabled: (disabled: boolean) => void;
 }
 
 export const SettingsInterface: React.FC<SettingsInterfaceProps> = ({
@@ -63,13 +70,15 @@ export const SettingsInterface: React.FC<SettingsInterfaceProps> = ({
   selectedTerminalTheme,
   onTerminalThemeChange,
   terminalThemesList,
+  isTerminalInputDisabled,
+  setIsTerminalInputDisabled,
 }) => {
   return (
     <>
       <div className="space-y-1">
-        <label htmlFor="apiKeyInput" className="text-sm font-medium">
+        <Label htmlFor="apiKeyInput" className="text-sm font-medium"> {/* Changed from label to Label */}
           Gemini API Key
-        </label>
+        </Label>
         <div className="flex items-center space-x-2">
           <Input
             id="apiKeyInput"
@@ -101,9 +110,9 @@ export const SettingsInterface: React.FC<SettingsInterfaceProps> = ({
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="modelSelect" className="text-sm font-medium">
+        <Label htmlFor="modelSelect" className="text-sm font-medium"> {/* Changed from label to Label */}
           AI Model
-        </label>
+        </Label>
         <Select
           value={selectedModel}
           onValueChange={onModelChange}
@@ -152,9 +161,9 @@ export const SettingsInterface: React.FC<SettingsInterfaceProps> = ({
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="appThemeSelect" className="text-sm font-medium">
-          App Theme
-        </label>
+        <Label htmlFor="appThemeSelect" className="text-sm font-medium flex items-center"> {/* Changed from label to Label */}
+          <Paintbrush className="w-4 h-4 mr-2" /> App Theme
+        </Label>
         <Select
           value={appTheme || "system"}
           onValueChange={onAppThemeChange}
@@ -178,6 +187,16 @@ export const SettingsInterface: React.FC<SettingsInterfaceProps> = ({
                 <Laptop className="w-4 h-4 mr-2" /> System
               </div>
             </SelectItem>
+            <SelectItem value="midnight-blue">
+              <div className="flex items-center">
+                <Moon className="w-4 h-4 mr-2" /> Midnight Blue
+              </div>
+            </SelectItem>
+            <SelectItem value="sandstone">
+              <div className="flex items-center">
+                <Sun className="w-4 h-4 mr-2" /> Sandstone
+              </div>
+            </SelectItem>
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
@@ -186,12 +205,12 @@ export const SettingsInterface: React.FC<SettingsInterfaceProps> = ({
       </div>
 
       <div className="space-y-2">
-        <label
+        <Label
           htmlFor="codeBlockThemeSelect"
           className="text-sm font-medium flex items-center"
         >
           <Palette className="w-4 h-4 mr-2" /> AI Chat Code Theme
-        </label>
+        </Label>
         <Select
           value={selectedShikiTheme}
           onValueChange={(value) => onShikiThemeChange(value as BundledTheme)}
@@ -213,12 +232,12 @@ export const SettingsInterface: React.FC<SettingsInterfaceProps> = ({
       </div>
 
       <div className="space-y-2">
-        <label
+        <Label
           htmlFor="editorThemeSelect"
           className="text-sm font-medium flex items-center"
         >
           <MonitorPlay className="w-4 h-4 mr-2" /> Editor Theme
-        </label>
+        </Label>
         <Select
           value={selectedEditorTheme}
           onValueChange={(value) => onEditorThemeChange(value as EditorTheme)}
@@ -240,12 +259,12 @@ export const SettingsInterface: React.FC<SettingsInterfaceProps> = ({
       </div>
 
       <div className="space-y-2">
-        <label
+        <Label
           htmlFor="terminalThemeSelect"
           className="text-sm font-medium flex items-center"
         >
           <TerminalLucideIcon className="w-4 h-4 mr-2" /> Terminal Theme
-        </label>
+        </Label>
         <Select
           value={selectedTerminalTheme}
           onValueChange={onTerminalThemeChange}
@@ -263,6 +282,26 @@ export const SettingsInterface: React.FC<SettingsInterfaceProps> = ({
         </Select>
         <p className="text-xs text-muted-foreground">
           Appearance of the integrated terminal.
+        </p>
+      </div>
+
+      <div className="space-y-2 pt-2">
+        <Label htmlFor="terminal-input-switch" className="text-sm font-medium flex items-center">
+          {isTerminalInputDisabled ? <ShieldOff className="w-4 h-4 mr-2 text-destructive" /> : <ShieldCheck className="w-4 h-4 mr-2 text-success" />}
+          Terminal Input
+        </Label>
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="terminal-input-switch"
+            checked={!isTerminalInputDisabled}
+            onCheckedChange={(checked) => setIsTerminalInputDisabled(!checked)}
+          />
+          <span className="text-xs text-muted-foreground">
+            {isTerminalInputDisabled ? "Input Disabled (AI cannot run commands)" : "Input Enabled (AI can run commands)"}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Toggle user and AI ability to execute commands in the terminal.
         </p>
       </div>
     </>

@@ -2,16 +2,17 @@
 "use client";
 
 import React from "react";
-import { TabsContent } from "@/components/ui/tabs";
-import { ChatInterface, type MessageType, type TypingState } from './chat-interface';
+import { TabsContent } from "@/components/ui"; // Consolidated import
+import { ChatInterface, type MessageType } from './chat-interface';
 import type { Highlighter, BundledTheme as ShikiTheme } from 'shiki';
+import type { GeminiContent } from "@/components/sidebar"; // Assuming GeminiContent is exported from sidebar or a shared types file
 
 interface ChatTabProps {
   messages: MessageType[];
-  typingStates: Record<string, TypingState>;
+  setMessages: React.Dispatch<React.SetStateAction<MessageType[]>>;
   inputValue: string;
   onInputChange: (value: string) => void;
-  onSendMessage: () => void;
+  onSendMessage: (isReprompt?: boolean, repromptHistory?: GeminiContent[]) => Promise<void>; // Matched signature from Sidebar
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   isAISending: boolean;
   activeApiKey: string | null;
@@ -24,7 +25,6 @@ interface ChatTabProps {
   typingSpeed: number;
   onStopGenerating: () => void;
   onAiOpenFileInEditor: (filePath: string) => Promise<void>;
-  onAiCreateFileAndType: (filePath: string, content: string) => Promise<void>;
   onAiExecuteTerminalCommand: (command: string) => Promise<{ success: boolean; output: string }>;
   onRefreshFileTree: () => void;
 }

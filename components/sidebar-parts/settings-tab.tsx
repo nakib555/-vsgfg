@@ -2,8 +2,8 @@
 "use client";
 
 import React from "react";
-import { TabsContent } from "@/components/ui/tabs";
-import { SettingsInterface } from './settings-interface'; // Assuming settings-interface.tsx is in the same directory
+import { TabsContent } from "@/components/ui"; // Consolidated import
+import { SettingsInterface } from './settings-interface'; 
 import type { EditorTheme } from '@/components/code-editor';
 import type { BundledTheme as ShikiTheme } from 'shiki';
 
@@ -38,11 +38,12 @@ interface SettingsTabProps {
   selectedTerminalTheme: string;
   onTerminalThemeChange: (value: string) => void;
   terminalThemesList: ThemeOption[];
+  isTerminalInputDisabled: boolean; // Added from Sidebar
+  setIsTerminalInputDisabled: (disabled: boolean) => void; // Added from Sidebar
 }
 
 export const SettingsTab: React.FC<SettingsTabProps> = (props) => {
   return (
-    // इंश्योर करें कि यहां `flex-1` क्लास नहीं है
     <TabsContent value="settings" className="mt-0 px-3 pb-3 space-y-6 overflow-y-auto">
       <SettingsInterface {...props} />
     </TabsContent>

@@ -2,35 +2,34 @@
 "use client"
 
 import React, { useState, useCallback, useEffect, useImperativeHandle, forwardRef } from "react"
-import { Resizable } from "@/components/resizable" 
+import { Resizable as CustomResizable } from "@/components/resizable" // Keep your custom Resizable
 import FileExplorer from "@/components/file-explorer"
 import CodeEditor, { type EditorTheme } from "@/components/code-editor"
 import CodePreview from "@/components/code-preview"
 import CodeDiffViewer from "@/components/code-diff-viewer"
-import { Button } from "@/components/ui/button"
+import { Button, Input, ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui"; // Consolidated imports
 import type { CodeFile, FileTreeItem } from "@/types/file"
-import { 
-  Code2, 
-  GitCompareArrows, 
-  Eye, 
-  X, 
-  RefreshCw, 
-  ArrowLeft, 
-  ArrowRight, 
-  Home, 
-  Maximize, 
-  Minimize, 
-  PanelLeftClose, 
-  Loader2, 
+import {
+  Code2,
+  GitCompareArrows,
+  Eye,
+  X,
+  RefreshCw,
+  ArrowLeft,
+  ArrowRight,
+  Home,
+  Maximize,
+  Minimize,
+  PanelLeftClose,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input"; 
 import { toast } from "sonner";
 import path from 'path';
 
 export interface EditorAreaRef {
   triggerFileTreeRefresh: () => void;
-  handleFileSelectProgrammatic: (fileItem: FileTreeItem) => Promise<void>; // Added this
+  handleFileSelectProgrammatic: (fileItem: FileTreeItem) => Promise<void>;
 }
 
 interface EditorAreaProps {
@@ -51,8 +50,8 @@ const EditorArea = forwardRef<EditorAreaRef, EditorAreaProps>(({
   toggleTerminal,
   selectedEditorTheme,
   rootDirectoryName,
-  editorTypingTarget, 
-  onEditorTypingComplete, 
+  editorTypingTarget,
+  onEditorTypingComplete,
 }, ref) => {
   const [fileTree, setFileTree] = useState<FileTreeItem[]>([]);
   const [isLoadingFileTree, setIsLoadingFileTree] = useState(true);
@@ -85,7 +84,7 @@ const EditorArea = forwardRef<EditorAreaRef, EditorAreaProps>(({
   const handleFileSelectProgrammatic = useCallback(async (fileItem: FileTreeItem) => {
     if (fileItem.isDirectory) return;
     setIsLoadingFileContent(true);
-    setActiveTab("code"); // Switch to code tab when a file is opened programmatically
+    setActiveTab("code"); 
     try {
       const response = await fetch(`/api/files?path=${encodeURIComponent(fileItem.path)}`);
       if (!response.ok) {
@@ -127,7 +126,7 @@ const EditorArea = forwardRef<EditorAreaRef, EditorAreaProps>(({
       const fileData: CodeFile = await response.json();
       setActiveFile({
         ...fileData,
-        id: fileData.id || fileData.path, 
+        id: fileData.id || fileData.path,
       });
     } catch (error) {
       console.error(`Error fetching content for ${fileItem.path}:`, error);
@@ -140,10 +139,10 @@ const EditorArea = forwardRef<EditorAreaRef, EditorAreaProps>(({
 
 
   const handleRunCodeForPreview = useCallback(async (code: string, language: string, filePath?: string) => {
-    let newHtml = ""; 
+    let newHtml = "";
     let newCss = "";
     let newJs = "";
-    let newUrl = `/${filePath ? path.basename(filePath) : 'preview.html'}`; 
+    let newUrl = `/${filePath ? path.basename(filePath) : 'preview.html'}`;
     let effectiveLanguage = language;
 
     const fetchLinkedFileContent = async (fileName: string, targetLanguage: 'css' | 'javascript') => {
@@ -164,13 +163,13 @@ const EditorArea = forwardRef<EditorAreaRef, EditorAreaProps>(({
       const jsMatch = code.match(/<script\s+.*?src=["'](.*?\.(?:js))["'].*?>/i);
       if (cssMatch?.[1]) newCss = await fetchLinkedFileContent(cssMatch[1], 'css');
       if (jsMatch?.[1]) newJs = await fetchLinkedFileContent(jsMatch[1], 'javascript');
-      
+
     } else if (language.toLowerCase() === "javascript") {
-      newHtml = `<h1>JavaScript Output</h1><div id="output"></div><style>body{margin:1rem; font-family:sans-serif;}</style>`; 
+      newHtml = `<h1>JavaScript Output</h1><div id="output"></div><style>body{margin:1rem; font-family:sans-serif;}</style>`;
       newJs = code;
       newUrl = `/${filePath ? path.basename(filePath) : 'preview.js'}`;
     } else if (language.toLowerCase() === "css") {
-      newHtml = `<h1>CSS Styles Applied</h1><p class="styled-text">This text should be styled by your CSS.</p><style>body{margin:1rem; font-family:sans-serif;}</style>`; 
+      newHtml = `<h1>CSS Styles Applied</h1><p class="styled-text">This text should be styled by your CSS.</p><style>body{margin:1rem; font-family:sans-serif;}</style>`;
       newCss = code;
       newUrl = `/${filePath ? path.basename(filePath) : 'preview.css'}`;
     } else {
@@ -179,9 +178,9 @@ const EditorArea = forwardRef<EditorAreaRef, EditorAreaProps>(({
       newJs = "";
       newCss = "";
       newUrl = "about:text";
-      effectiveLanguage = "plaintext"; 
+      effectiveLanguage = "plaintext";
     }
-    
+
     setPreviewContent({ html: newHtml, css: newCss, js: newJs, language: effectiveLanguage, url: newUrl });
     setActiveTab("preview");
   }, []);
@@ -196,7 +195,7 @@ const EditorArea = forwardRef<EditorAreaRef, EditorAreaProps>(({
   const canShowActiveFilePreview = activeFile && (activeFile.language === 'html' || activeFile.language === 'javascript' || activeFile.language === 'css');
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground"> 
+    <div className="flex flex-col h-full bg-background text-foreground">
       <div className="h-10 border-b border-border flex items-center justify-between px-2 bg-muted">
         <div className="flex items-center h-full">
           <Button variant="ghost" size="sm" className={cn("h-full px-3 rounded-none text-xs font-medium flex items-center gap-1.5", activeTab === "code" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/80 hover:text-accent-foreground")} onClick={() => setActiveTab("code")}> <Code2 size={14} /> Code </Button>
@@ -204,10 +203,10 @@ const EditorArea = forwardRef<EditorAreaRef, EditorAreaProps>(({
           <Button variant="ghost" size="sm" className={cn("h-full px-3 rounded-none text-xs font-medium flex items-center gap-1.5", activeTab === "preview" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/80 hover:text-accent-foreground")} onClick={() => setActiveTab("preview")}> <Eye size={14} /> Preview </Button>
         </div>
         <div className="flex items-center h-full space-x-1">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-xs text-muted-foreground hover:text-foreground" 
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-muted-foreground hover:text-foreground"
             onClick={fetchFileTree}
             title="Refresh File Explorer"> <RefreshCw size={16} className="mr-1.5" /> Refresh Files </Button>
           <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground" onClick={toggleTerminal}> <PanelLeftClose size={16} className="mr-1.5" /> Toggle Terminal </Button>
@@ -218,8 +217,8 @@ const EditorArea = forwardRef<EditorAreaRef, EditorAreaProps>(({
 
       <div className="flex-1 flex overflow-hidden">
         {activeTab === "code" && (
-          <>
-            <Resizable direction="horizontal" initialSize={280} minSize={200} maxSize={600} resizerSide="right" className="border-r border-border bg-card">
+          <ResizablePanelGroup direction="horizontal">
+            <ResizablePanel defaultSize={25} minSize={15} maxSize={40} className="border-r border-border bg-card">
               {isLoadingFileTree ? (
                 <div className="p-4 flex items-center justify-center h-full">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -231,37 +230,39 @@ const EditorArea = forwardRef<EditorAreaRef, EditorAreaProps>(({
                   activeFile={activeFile}
                   onFileSelect={handleFileSelect}
                   rootDirectoryName={rootDirectoryName}
-                  onFileSystemUpdate={fetchFileTree} 
+                  onFileSystemUpdate={fetchFileTree}
                 />
               )}
-            </Resizable>
-
-            <div className="flex-1 flex flex-col overflow-hidden bg-background"> 
-              {activeFile && (
-                <div className="h-9 border-b border-border flex items-center px-3 bg-muted">
-                  <div className="flex-1 flex items-center">
-                    <span className="text-sm flex items-center font-medium text-foreground">
-                      {activeFile?.name}
-                    </span>
-                    {isLoadingFileContent && <Loader2 className="h-4 w-4 animate-spin ml-2 text-muted-foreground" />}
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={75}>
+              <div className="flex-1 flex flex-col overflow-hidden bg-background">
+                {activeFile && (
+                  <div className="h-9 border-b border-border flex items-center px-3 bg-muted">
+                    <div className="flex-1 flex items-center">
+                      <span className="text-sm flex items-center font-medium text-foreground">
+                        {activeFile?.name}
+                      </span>
+                      {isLoadingFileContent && <Loader2 className="h-4 w-4 animate-spin ml-2 text-muted-foreground" />}
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={handleCloseActiveFile}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={handleCloseActiveFile}>
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
+                )}
+                <div className="flex-1 overflow-auto">
+                  <CodeEditor
+                    file={activeFile}
+                    onContentChange={onFileContentChange}
+                    onRunCode={(code, lang) => handleRunCodeForPreview(code, lang, activeFile?.path)}
+                    editorTheme={selectedEditorTheme}
+                    typingTarget={editorTypingTarget}
+                    onTypingComplete={onEditorTypingComplete}
+                  />
                 </div>
-              )}
-              <div className="flex-1 overflow-auto">
-                <CodeEditor
-                  file={activeFile}
-                  onContentChange={onFileContentChange}
-                  onRunCode={(code, lang) => handleRunCodeForPreview(code, lang, activeFile?.path)}
-                  editorTheme={selectedEditorTheme}
-                  typingTarget={editorTypingTarget} 
-                  onTypingComplete={onEditorTypingComplete} 
-                />
               </div>
-            </div>
-          </>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         )}
 
         {activeTab === "diff" && ( <div className="w-full h-full"> <CodeDiffViewer file={activeFile} onClose={() => setActiveTab("code")} /> </div> )}

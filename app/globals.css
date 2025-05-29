@@ -7,7 +7,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 0 0% 100%; /* Default Light Theme Base */
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -43,7 +43,7 @@
     --font-mono: var(--font-jetbrains);
   }
 
-  .dark {
+  .dark { /* Default Dark Theme */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
@@ -76,6 +76,74 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
   }
+
+  .midnight-blue {
+    --background: 220 40% 10%;
+    --foreground: 210 30% 90%;
+    --card: 220 40% 12%;
+    --card-foreground: 210 30% 90%;
+    --popover: 220 40% 12%;
+    --popover-foreground: 210 30% 90%;
+    --primary: 200 70% 75%;
+    --primary-foreground: 220 40% 5%;
+    --secondary: 220 30% 20%;
+    --secondary-foreground: 210 30% 85%;
+    --muted: 220 30% 20%;
+    --muted-foreground: 210 25% 60%;
+    --accent: 220 30% 25%;
+    --accent-foreground: 200 70% 75%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 210 30% 90%;
+    --success: 140 60% 45%;
+    --success-foreground: 210 30% 90%;
+    --warning: 40 80% 55%;
+    --warning-foreground: 220 40% 5%;
+    --border: 220 30% 25%;
+    --input: 220 30% 22%;
+    --ring: 200 70% 65%;
+    --code-keyword: 270 60% 75%;
+    --code-string: 90 50% 55%;
+    --code-comment: 210 15% 55%;
+    --code-number: 35 70% 65%;
+    --code-boolean: 180 50% 65%;
+    --code-tag: 5 70% 65%;
+    --code-attribute: 45 70% 65%;
+    --search-highlight-bg: 45 90% 60%;
+  }
+
+  .sandstone {
+    --background: 35 40% 92%;
+    --foreground: 30 30% 20%;
+    --card: 35 40% 95%;
+    --card-foreground: 30 30% 20%;
+    --popover: 35 40% 95%;
+    --popover-foreground: 30 30% 20%;
+    --primary: 25 60% 45%;
+    --primary-foreground: 35 40% 98%;
+    --secondary: 35 30% 85%;
+    --secondary-foreground: 25 60% 35%;
+    --muted: 35 30% 85%;
+    --muted-foreground: 30 25% 50%;
+    --accent: 35 30% 88%;
+    --accent-foreground: 25 60% 45%;
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 35 40% 98%;
+    --success: 120 50% 40%;
+    --success-foreground: 35 40% 98%;
+    --warning: 40 70% 50%;
+    --warning-foreground: 30 30% 20%;
+    --border: 35 30% 80%;
+    --input: 35 30% 82%;
+    --ring: 25 60% 55%;
+    --code-keyword: 260 50% 50%;
+    --code-string: 110 40% 40%;
+    --code-comment: 30 10% 50%;
+    --code-number: 20 60% 50%;
+    --code-boolean: 200 40% 50%;
+    --code-tag: 10 60% 50%;
+    --code-attribute: 50 60% 50%;
+    --search-highlight-bg: 50 80% 60%;
+  }
 }
 
 @layer base {
@@ -84,263 +152,316 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-ui); /* Apply UI font to body */
-    line-height: 1.6; /* Improve default line height for readability */
+    font-family: var(--font-ui);
+    line-height: 1.6;
   }
-  /* Headings using UI font by default */
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-ui);
+  }
+  .katex {
+    color: hsl(var(--foreground)) !important; 
+    font-size: 1.05em; 
+  }
+  .katex .text { 
+    font-family: var(--font-ui) !important;
   }
 }
 
 /* Terminal command styles */
-.ps-success {
-  color: hsl(var(--success));
-}
-.ps-error {
-  color: hsl(var(--destructive));
-}
-.ps-info {
-  color: hsl(217.2, 91.2%, 59.8%);
-}
-.ps-command {
-  color: hsl(var(--warning));
-}
+.ps-success { color: hsl(var(--success)); }
+.ps-error { color: hsl(var(--destructive)); }
+.ps-info { color: hsl(217.2, 91.2%, 59.8%); }
+.ps-command { color: hsl(var(--warning)); }
 
 .search-highlight {
   background-color: hsla(var(--search-highlight-bg), 0.3);
-  border-radius: 0.125rem;
-  padding: 0 0.125rem;
+  @apply rounded-sm px-0.5;
 }
-.dark .search-highlight {
-  background-color: hsla(var(--search-highlight-bg), 0.4);
+.dark .search-highlight { background-color: hsla(var(--search-highlight-bg), 0.4); }
+.midnight-blue .search-highlight { background-color: hsla(var(--search-highlight-bg), 0.5); }
+.sandstone .search-highlight { background-color: hsla(var(--search-highlight-bg), 0.25); }
+
+
+/* --- AI Chat Code Block Enhancements --- */
+.ai-chat-code-block {
+  @apply relative my-4 rounded-md bg-muted/30 border border-border/50 overflow-hidden;
 }
 
-/* Styling for Shiki-highlighted code in AI chat */
-.ai-chat-code-block .shiki-container > pre.shiki {
-  margin: 0 !important;
-  padding: 0.75rem !important;
-  border-radius: 0 0 0.375rem 0.375rem;
-  overflow-x: auto;
+.ai-chat-code-block-header {
+  @apply px-3 py-1.5 text-xs text-muted-foreground border-b border-border/70 flex justify-between items-center bg-muted/50 rounded-t-md;
+}
+.dark .ai-chat-code-block-header { @apply bg-muted/40 border-border/60; }
+.midnight-blue .ai-chat-code-block-header { @apply bg-accent/30 border-accent/40; }
+.sandstone .ai-chat-code-block-header { @apply bg-accent/40 border-accent/50; }
+
+
+.ai-chat-code-block .shiki-container > pre.shiki,
+.ai-chat-code-block .shiki-container > pre.shiki-fallback {
+  @apply m-0 overflow-x-auto p-0;
   line-height: 1.625;
   font-size: 0.875rem;
+  counter-reset: lineNumber;
 }
-.ai-chat-code-block .shiki-container > pre.shiki code {
+
+.ai-chat-code-block .shiki-container > pre.shiki code,
+.ai-chat-code-block .shiki-container > pre.shiki-fallback code {
   font-family: var(--font-mono);
+  @apply p-0 block; 
 }
+
+.ai-chat-code-block .shiki-container > pre.shiki .line,
+.ai-chat-code-block .shiki-container > pre.shiki-fallback .line { 
+  @apply block relative pl-[3.25em] pr-3 py-px; 
+  counter-increment: lineNumber;
+  min-height: 1.625em; 
+}
+
+.ai-chat-code-block .shiki-container > pre.shiki .line::before,
+.ai-chat-code-block .shiki-container > pre.shiki-fallback .line::before {
+  content: counter(lineNumber);
+  @apply absolute left-0 top-0 w-[2.75em] pr-2 text-right text-muted-foreground/70 select-none;
+  font-size: 0.8em; 
+  padding-top: inherit; 
+  line-height: inherit; 
+}
+.dark .ai-chat-code-block .shiki-container > pre.shiki .line::before,
+.dark .ai-chat-code-block .shiki-container > pre.shiki-fallback .line::before {
+  @apply text-muted-foreground/50;
+}
+
+
 .ai-chat-code-block .shiki-container > pre.shiki .line.highlighted {
   background-color: hsl(var(--accent) / 0.5);
 }
 
-/* Fallback styling if Shiki fails or language is not supported */
 .ai-chat-code-block .shiki-container > pre.shiki-fallback {
   background-color: hsl(var(--muted) / 0.7);
   color: hsl(var(--foreground));
-  padding: 0.75rem;
-  border-radius: 0 0 0.375rem 0.375rem;
-  overflow-x: auto;
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  line-height: 1.625;
 }
 .ai-chat-code-block .shiki-container > pre.shiki-fallback code {
   white-space: pre-wrap;
+  @apply p-3; 
+}
+
+.ai-chat-code-block .shiki-container > pre::-webkit-scrollbar {
+  @apply h-2 w-2;
+}
+.ai-chat-code-block .shiki-container > pre::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+.ai-chat-code-block .shiki-container > pre::-webkit-scrollbar-thumb {
+  @apply bg-border rounded;
+}
+.ai-chat-code-block .shiki-container > pre::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/70;
 }
 
 
 /* Enhanced Tailwind Typography Styles for AI Chat */
 @layer components {
-  .prose { /* General prose enhancements */
+  .prose {
     @apply text-foreground;
-    line-height: 1.7;
+    line-height: 1.75; 
   }
-  .dark .prose {
+  .dark .prose, .midnight-blue .prose, .sandstone .prose {
     @apply text-foreground;
   }
 
   .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
     @apply font-semibold tracking-tight text-foreground;
   }
-  .dark .prose h1, .dark .prose h2, .dark .prose h3, .dark .prose h4, .dark .prose h5, .dark .prose h6 {
-    @apply text-foreground;
-  }
-  .prose h1 { @apply text-2xl mt-6 mb-3; }
-  .prose h2 { @apply text-xl mt-5 mb-2.5; }
-  .prose h3 { @apply text-lg mt-4 mb-2; }
+  .prose h1 { @apply text-2xl mt-8 mb-4; } 
+  .prose h2 { @apply text-xl mt-7 mb-3.5; }
+  .prose h3 { @apply text-lg mt-6 mb-3; }
 
   .prose p {
-    @apply my-3; /* Consistent paragraph spacing */
+    @apply my-4; 
   }
 
   .prose a {
-    @apply text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium underline underline-offset-2 transition-colors;
+    @apply text-primary hover:text-primary/80 font-medium underline underline-offset-4 transition-colors; 
   }
+  .midnight-blue .prose a { @apply text-blue-400 hover:text-blue-300; }
+  .sandstone .prose a { @apply text-orange-700 hover:text-orange-800; }
 
-  .prose strong {
-    @apply font-semibold text-foreground;
-  }
-  .dark .prose strong {
-    @apply text-foreground;
-  }
+  .prose strong { @apply font-semibold text-foreground; }
 
   .prose blockquote {
-    @apply pl-4 italic border-l-4 border-border text-muted-foreground my-4;
+    @apply pl-5 py-3 italic border-l-[5px] border-border bg-muted/20 text-muted-foreground my-5 rounded-r-md shadow-sm; 
   }
-  .dark .prose blockquote {
-    @apply border-border text-muted-foreground;
-  }
+  .dark .prose blockquote { @apply border-border bg-muted/30 text-muted-foreground; }
+  .midnight-blue .prose blockquote { @apply border-accent/60 bg-accent/25 text-accent-foreground/80; }
+  .sandstone .prose blockquote { @apply border-accent/60 bg-accent/35 text-accent-foreground/90; }
+  .prose blockquote p { @apply my-1; } 
+
 
   .prose ul, .prose ol {
-    @apply my-3 pl-6 space-y-1;
+    @apply my-4 pl-6 space-y-2; 
   }
-  .prose ul li::marker {
-    @apply text-muted-foreground;
+  .prose ul li::marker { @apply text-muted-foreground font-semibold text-lg; } 
+  .prose ol li::marker { @apply text-muted-foreground font-semibold; }
+  .prose li > p { @apply my-1.5; }
+  .prose ul ul, .prose ol ol, .prose ul ol, .prose ol ul {
+    @apply my-2 pl-5; 
   }
-  .prose ol li::marker {
-    @apply text-muted-foreground font-medium;
+  .prose li .ai-chat-code-block, .prose blockquote .ai-chat-code-block { 
+    @apply my-2; 
   }
 
+
   .prose code { /* Inline code */
-    @apply bg-muted/70 text-foreground font-mono text-[0.85em] px-1.5 py-0.5 rounded-sm;
+    @apply bg-muted/70 text-foreground font-mono text-[0.875em] px-1.5 py-1 rounded-md border border-border/50; 
   }
-  .dark .prose code {
-     @apply bg-muted/70 text-foreground;
-  }
-  /* Prevent prose from overriding Shiki's code block colors */
-  .prose pre code {
+  .dark .prose code { @apply bg-muted/70 text-foreground border-border/50; }
+  .midnight-blue .prose code { @apply bg-accent/30 text-accent-foreground/90 border-accent/40; }
+  .sandstone .prose code { @apply bg-accent/40 text-accent-foreground/90 border-accent/50; }
+
+  .prose pre code { 
     color: inherit !important;
     padding: 0 !important;
     font-size: inherit !important;
+    background-color: transparent !important;
+    border: none !important;
   }
 
+  .prose kbd {
+    @apply px-2.5 py-1.5 text-xs font-semibold text-foreground bg-muted border border-border rounded-md shadow-sm; 
+  }
+  .dark .prose kbd { @apply bg-muted/80 border-border/70; }
+  .midnight-blue .prose kbd { @apply bg-accent/50 border-accent/60 text-accent-foreground; }
+  .sandstone .prose kbd { @apply bg-accent/60 border-accent/70 text-accent-foreground; }
 
-  /* Table Styling within Prose */
+  .prose mark {
+    @apply bg-yellow-300 dark:bg-yellow-600/40 text-yellow-950 dark:text-yellow-100 px-1 py-0.5 rounded; 
+  }
+  .midnight-blue .prose mark { @apply bg-yellow-600/50 text-yellow-50; }
+  .sandstone .prose mark { @apply bg-yellow-300/80 text-yellow-950; }
+
   .prose table {
-    @apply w-auto min-w-[50%] my-5 border-collapse border border-border text-sm;
+    @apply w-auto min-w-[50%] my-6 border-collapse border border-border text-sm rounded-lg overflow-hidden shadow-md; 
   }
-  .dark .prose table {
-    @apply border-border;
-  }
+  .dark .prose table { @apply border-border; }
 
-  .prose thead {
-    @apply border-b border-border;
-  }
-  .dark .prose thead {
-     @apply border-border;
-  }
+  .prose thead { @apply border-b-2 border-border bg-muted/40; } 
+  .dark .prose thead { @apply border-border bg-muted/25; }
+  .midnight-blue .prose thead { @apply bg-accent/40; }
+  .sandstone .prose thead { @apply bg-accent/30; }
+
 
   .prose th {
-    @apply border border-border px-3 py-2 text-left font-semibold bg-muted/30 text-foreground;
+    @apply border border-border px-4 py-3 text-left font-semibold text-foreground; 
   }
-  .dark .prose th {
-    @apply bg-muted/20 border-border text-foreground;
-  }
+  .dark .prose th { @apply text-foreground; }
+  .midnight-blue .prose th { @apply text-foreground; }
+  .sandstone .prose th { @apply text-foreground; }
 
   .prose tbody tr {
-    @apply border-b border-border transition-colors hover:bg-muted/20;
+    @apply border-b border-border transition-colors hover:bg-muted/30; 
   }
-  .dark .prose tbody tr {
-    @apply border-border hover:bg-muted/10;
-  }
-  .prose tbody tr:last-child {
-    @apply border-b-0;
-  }
+  .dark .prose tbody tr { @apply border-border hover:bg-muted/20; }
+  .prose tbody tr:last-child { @apply border-b-0; }
+  .midnight-blue .prose tbody tr:hover { @apply hover:bg-accent/25; }
+  .sandstone .prose tbody tr:hover { @apply hover:bg-accent/20; }
 
   .prose td {
-    @apply border border-border px-3 py-2 text-left;
+    @apply border border-border px-4 py-3 text-left; 
   }
-  .dark .prose td {
-    @apply border-border;
+  .dark .prose td { @apply border-border; }
+
+  .prose hr {
+    @apply my-10 border-t-2 border-border/70; 
+  }
+  .dark .prose hr, .midnight-blue .prose hr, .sandstone .prose hr {
+    @apply border-border/70;
   }
 
-  .prose table td, .prose table th {
-    /* font-family: var(--font-mono); */
-  }
+  .prose dl { @apply my-5; }
+  .prose dt { @apply font-semibold mt-4 mb-1 text-foreground; }
+  .prose dd { @apply pl-6 mb-2 text-muted-foreground; }
+  .midnight-blue .prose dd { @apply text-accent-foreground/70; }
+  .sandstone .prose dd { @apply text-accent-foreground/80; }
+  .prose dd + dt { @apply mt-3; } 
 
-  /* Styling for AI_ACTION delimiters if they appear in raw text */
-  .ai-action-delimiter {
-    @apply block font-mono text-xs px-2 py-1 rounded-sm my-1;
+  .prose sub, .prose sup {
+    @apply text-[0.75em] align-baseline relative leading-none; 
   }
-  .ai-action-delimiter-start {
-    @apply bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 border border-blue-300 dark:border-blue-700;
-  }
-  .ai-action-delimiter-end {
-    @apply bg-gray-100 text-gray-600 dark:bg-gray-700/50 dark:text-gray-300 border border-gray-300 dark:border-gray-600;
-  }
-
-  /* --- AI Action Progress Bar Styles --- */
-  .ai-action-progress-bar-container {
-    @apply my-4 p-3 border border-border rounded-lg bg-muted/30;
-  }
-
-  .ai-action-step {
-    @apply flex items-start space-x-3 py-2.5; /* Increased py for more space */
-    /* Add a subtle bottom border for separation, except for the last child */
-    @apply border-b border-border/50;
-  }
-  .ai-action-progress-bar-container .ai-action-step:last-child {
-    @apply border-b-0 pb-1; /* Remove border and reduce padding for last item */
-  }
-   .ai-action-step.step-active { /* Style for the currently processing step */
-    @apply bg-accent/30 -mx-3 px-3 rounded-md;
-  }
+  .prose sub { @apply -bottom-[0.2em]; }
+  .prose sup { @apply -top-[0.4em]; }
 
 
-  .ai-action-step-indicator-wrapper {
-    @apply flex flex-col items-center pt-0.5; /* Align icon with first line of text */
+  .ai-action-delimiter { @apply block font-mono text-xs px-2 py-1 rounded-sm my-1; }
+  .ai-action-delimiter-start { @apply bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 border border-blue-300 dark:border-blue-700; }
+  .midnight-blue .ai-action-delimiter-start { @apply bg-sky-800/50 text-sky-300 border-sky-700; }
+  .sandstone .ai-action-delimiter-start { @apply bg-orange-100 text-orange-700 border-orange-300; }
+  .ai-action-delimiter-end { @apply bg-gray-100 text-gray-600 dark:bg-gray-700/50 dark:text-gray-300 border border-gray-300 dark:border-gray-600; }
+  .midnight-blue .ai-action-delimiter-end { @apply bg-slate-700/50 text-slate-300 border-slate-600; }
+  .sandstone .ai-action-delimiter-end { @apply bg-stone-200 text-stone-600 border-stone-400; }
+
+  .ai-action-progress-bar-container { @apply my-4 p-3 border border-border rounded-lg bg-muted/30; }
+  .ai-action-step { @apply flex items-start space-x-3 py-2.5 border-b border-border/50; }
+  .ai-action-progress-bar-container .ai-action-step:last-child { @apply border-b-0 pb-1; }
+  .ai-action-step.step-active { @apply bg-accent/30 -mx-3 px-3 rounded-md; }
+  .ai-action-step-indicator-wrapper { @apply flex flex-col items-center pt-0.5; }
+  .ai-action-step-icon { @apply h-5 w-5 text-primary shrink-0; }
+  .ai-action-step-status-icon { @apply h-5 w-5 shrink-0; }
+  .ai-action-step-status-icon.status-pending { @apply text-muted-foreground animate-spin; }
+  .ai-action-step-status-icon.status-success { @apply text-success; }
+  .ai-action-step-status-icon.status-error { @apply text-destructive; }
+  .ai-action-step-status-icon.status-idle { @apply text-muted-foreground opacity-50; }
+  .ai-action-step-content { @apply flex-1 min-w-0; }
+  .ai-action-step-description { @apply text-sm font-medium text-foreground; }
+  .ai-action-step-description.description-completed { @apply text-muted-foreground line-through; }
+  .ai-action-command-box { @apply mt-1.5 p-2.5 bg-background border border-border rounded-md text-xs font-mono text-foreground whitespace-pre-wrap break-all; }
+  .dark .ai-action-command-box { @apply bg-muted/40 border-border; }
+  .midnight-blue .ai-action-command-box { @apply bg-slate-800/60 border-slate-700; }
+  .sandstone .ai-action-command-box { @apply bg-stone-100 border-stone-300; }
+  .ai-action-file-details { @apply mt-1 text-xs text-muted-foreground italic; }
+  .ai-action-file-details code { @apply bg-transparent p-0 font-normal text-muted-foreground; }
+  .ai-action-error-message { @apply mt-1 text-xs text-destructive bg-destructive/10 p-2 rounded-md; }
+
+  /* Styles for AI Live Preview Blocks */
+  .ai-live-preview-block {
+    @apply my-6 p-4 border border-dashed border-primary/50 rounded-lg bg-background shadow-md;
+    /* Add any specific container styling you want for these blocks */
   }
 
-  .ai-action-step-icon { /* For the main action type icon */
-    @apply h-5 w-5 text-primary shrink-0;
+  .dark .ai-live-preview-block {
+    @apply border-primary/40;
   }
-  .ai-action-step-status-icon { /* For check, loader, error icons */
-    @apply h-5 w-5 shrink-0;
-  }
-  .ai-action-step-status-icon.status-pending {
-    @apply text-muted-foreground animate-spin;
-  }
-  .ai-action-step-status-icon.status-success {
-    @apply text-success;
-  }
-  .ai-action-step-status-icon.status-error {
-    @apply text-destructive;
-  }
-  .ai-action-step-status-icon.status-idle { /* For steps not yet started */
-    @apply text-muted-foreground opacity-50;
+  
+  .midnight-blue .ai-live-preview-block {
+    @apply border-sky-500/50 bg-slate-800/30;
   }
 
-
-  .ai-action-step-content {
-    @apply flex-1 min-w-0; /* Allow content to shrink and wrap */
+  .sandstone .ai-live-preview-block {
+    @apply border-orange-500/50 bg-orange-50/30;
   }
 
-  .ai-action-step-description {
-    @apply text-sm font-medium text-foreground;
+  /* Attempt to reset some prose styles that might interfere with live preview content */
+  .ai-live-preview-block p,
+  .ai-live-preview-block div,
+  .ai-live-preview-block button,
+  .ai-live-preview-block input,
+  .ai-live-preview-block select,
+  .ai-live-preview-block textarea,
+  .ai-live-preview-block span, /* Added span for more coverage */
+  .ai-live-preview-block label { /* Added label */
+    margin: revert;
+    padding: revert;
+    font-size: revert;
+    line-height: revert;
+    color: revert; /* Allows the preview's own styles or theme variables to take precedence */
+    font-weight: revert;
+    font-style: revert;
+    text-decoration: revert;
+    border: revert; /* Revert border if prose adds it */
+    background-color: revert; /* Revert background if prose adds it */
   }
-  .ai-action-step-description.description-completed {
-    @apply text-muted-foreground line-through;
-  }
-
-
-  .ai-action-command-box {
-    @apply mt-1.5 p-2.5 bg-background border border-border rounded-md text-xs font-mono text-foreground whitespace-pre-wrap break-all;
-  }
-  .dark .ai-action-command-box {
-    @apply bg-muted/40 border-border;
-  }
-
-  .ai-action-file-details {
-    @apply mt-1 text-xs text-muted-foreground italic;
-  }
-  .ai-action-file-details code { /* Inline code within file details */
-     @apply bg-transparent p-0 font-normal text-muted-foreground;
-  }
-
-  .ai-action-error-message {
-    @apply mt-1 text-xs text-destructive bg-destructive/10 p-2 rounded-md;
+  /* Provide some very basic default styling for buttons inside live previews if they don't style themselves */
+  .ai-live-preview-block button:not([style*="background-color"]):not([class*="bg-"]) {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-1.5 rounded-md text-sm;
   }
 }
-
 
 /* Live string highlighting during typing */
 .live-string-double,
@@ -359,6 +480,37 @@
   font-size: inherit !important;
   border-radius: 0 !important;
 }
+
+/* Live math highlighting during typing */
+.live-math-inline-content,
+.live-math-block-content {
+  color: hsl(var(--code-number)); /* Using code-number color (orange-ish) as an example */
+  /* font-style: italic; */ /* Optional: make it italic */
+}
+.live-math-inline-delimiter,
+.live-math-block-delimiter {
+  color: hsl(var(--code-number) / 0.7); /* Make delimiters slightly less prominent */
+}
+
+.prose .live-math-inline-content,
+.prose .live-math-block-content,
+.prose .live-math-inline-delimiter,
+.prose .live-math-block-delimiter {
+  background-color: transparent !important;
+  padding: 0 !important;
+  font-family: inherit !important; /* Use surrounding font during typing */
+  font-size: inherit !important;
+  border-radius: 0 !important;
+}
+.prose .live-math-inline-content,
+.prose .live-math-block-content {
+  color: hsl(var(--code-number)) !important; 
+}
+.prose .live-math-inline-delimiter,
+.prose .live-math-block-delimiter {
+  color: hsl(var(--code-number) / 0.7) !important;
+}
+
 
 .prose :where(pre):not(:where([class~="not-prose"],[class~="not-prose"] *)){
   color: var(--tw-prose-pre-code);

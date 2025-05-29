@@ -1,66 +1,71 @@
 // components/sidebar-parts/chat-interface.tsx
 "use client";
-import { AlertTriangle, CheckCircle2, Info, Loader2, Square, File as FileIconLucide, Terminal as TerminalIconLucide, PlayCircle, Folder as FolderIcon } from "lucide-react"; // Added FolderIcon
+import { AlertTriangle, CheckCircle2, Info, Loader2, Square, Terminal as TerminalIconLucide, PlayCircle, Search, Eye, Code as CodeIconLucide } from "lucide-react";
 import React, { useRef, useCallback, useEffect, useState } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Send, Bot, User, Copy, Check, Code, FileCode } from "lucide-react";
-import { cn, debounce } from "@/lib/utils"; // Import debounce
+import { ScrollArea, Textarea, Button } from "@/components/ui"; // Consolidated imports
+import { Send, Bot, User, Copy, Check, Code as CodeBlockIcon, FileCode } from "lucide-react"; // Renamed Code to CodeBlockIcon to avoid conflict
+import { cn, debounce } from "@/lib/utils";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import type { Highlighter, Lang, Theme as ShikiTheme } from 'shiki';
-import { liveHighlightStrings, convertAsciiTableToMarkdown } from '@/lib/markdown-utils';
+import { liveHighlightStrings, convertAsciiTableToMarkdown, liveHighlightMath } from '@/lib/markdown-utils';
 import { escapeHtml } from '@/lib/html-utils';
 import { toast } from "sonner";
 
 
 export interface AiActionStep {
-  type: "createFile" | "createFolder" | "runCommand" | "startApplication";
+  type: "runCommand" | "startApplication" | "searchGoogle";
   description: string;
-  targetPath?: string; 
-  content?: string;    
-  command?: string;    
-  commandDisplay?: string; 
+  command?: string;
+  commandDisplay?: string;
+  query?: string; // For searchGoogle
   // --- Fields for UI state, not from AI ---
   id: string; // Client-generated unique ID for the step instance
   currentStatus: 'idle' | 'pending' | 'success' | 'error';
-  output?: string; // For command output
+  output?: string; // For command output or search results
   errorMessage?: string; // For step-specific errors
 }
 export interface AiActionBlock {
   steps: AiActionStep[];
-  project?: string; 
+  project?: string;
 }
 
 export interface MessageType {
   id: string;
   role: "user" | "assistant";
-  content: string; 
+  content: string;
   actionBlock?: AiActionBlock | null;
   timestamp: Date;
-  isTyping?: boolean; 
-  
+  isTyping?: boolean;
+
   _mainContentBefore?: string;
-  _mainContentAfter?: string;  
-  _actionsProcessed?: boolean; 
-  _currentTextPart?: 'before' | 'after'; 
+  _mainContentAfter?: string;
+  _actionsProcessed?: boolean;
+  _currentTextPart?: 'before' | 'after';
+  _isSearchResultContext?: boolean; 
 }
 
 export interface TypingState {
-  displayedText: string;
   charIndex: number;
 }
 
 interface HighlightedCodeBlockProps {
   code: string;
-  language: string;
+  language: string; // This will be the full language string e.g. "html-live-preview" or "python"
   highlighter: Highlighter | null;
   codeBlockTheme: ShikiTheme;
+  // isLivePreviewBlock prop is removed as this component won't manage the iframe directly
 }
 
-const HighlightedCodeBlock: React.FC<HighlightedCodeBlockProps> = React.memo(({ code, language, highlighter, codeBlockTheme }) => {
+const HighlightedCodeBlock: React.FC<HighlightedCodeBlockProps> = React.memo(({
+  code,
+  language, // e.g., "html-live-preview" or "python"
+  highlighter,
+  codeBlockTheme,
+}) => {
   const [highlightedHtml, setHighlightedHtml] = useState<string>("");
   const [isLoadingLanguage, setIsLoadingLanguage] = useState(false);
 
@@ -74,25 +79,26 @@ const HighlightedCodeBlock: React.FC<HighlightedCodeBlockProps> = React.memo(({ 
         return;
       }
       if (highlighter) {
-        const validLang = language?.toLowerCase() as Lang || 'plaintext'; 
+        // For 'html-live-preview', we still want to show HTML syntax highlighting
+        const langForShiki = (language === 'html-live-preview' ? 'html' : language?.toLowerCase()) as Lang || 'plaintext';
+        
         const loadedLanguages = highlighter.getLoadedLanguages();
-        const isPotentiallyComplete = validLang.length >=1 && (loadedLanguages.includes(validLang) || validLang.length >=2 || knownShortLangs.includes(validLang));
+        const isPotentiallyComplete = langForShiki.length >=1 && (loadedLanguages.includes(langForShiki) || langForShiki.length >=2 || knownShortLangs.includes(langForShiki));
 
-
-        if (!loadedLanguages.includes(validLang) && isPotentiallyComplete) {
+        if (!loadedLanguages.includes(langForShiki) && isPotentiallyComplete) {
           if (isMounted) setIsLoadingLanguage(true);
           try {
-            const resolvedLang = highlighter.getLang(validLang);
+            const resolvedLang = highlighter.getLang(langForShiki);
             if (resolvedLang && loadedLanguages.includes(resolvedLang.id as Lang)) {
                  const html = highlighter.codeToHtml(code, { lang: resolvedLang.id as Lang, theme: codeBlockTheme });
                  if (isMounted) setHighlightedHtml(html);
             } else {
-                await highlighter.loadLanguage(validLang);
-                if (isMounted && highlighter.getLoadedLanguages().includes(validLang)) {
-                  const html = highlighter.codeToHtml(code, { lang: validLang, theme: codeBlockTheme });
+                await highlighter.loadLanguage(langForShiki);
+                if (isMounted && highlighter.getLoadedLanguages().includes(langForShiki)) {
+                  const html = highlighter.codeToHtml(code, { lang: langForShiki, theme: codeBlockTheme });
                   if (isMounted) setHighlightedHtml(html);
                 } else if (isMounted) {
-                  console.warn(`Shiki: Language "${validLang}" could not be loaded or is not recognized after attempt. Falling back.`);
+                  console.warn(`Shiki: Language "${langForShiki}" could not be loaded or is not recognized after attempt. Falling back.`);
                   setHighlightedHtml(`<pre class="shiki-fallback"><code>${liveHighlightStrings(escapeHtml(code))}</code></pre>`);
                 }
             }
@@ -101,8 +107,8 @@ const HighlightedCodeBlock: React.FC<HighlightedCodeBlockProps> = React.memo(({ 
           } finally {
             if (isMounted) setIsLoadingLanguage(false);
           }
-        } else if (loadedLanguages.includes(validLang)) {
-          const html = highlighter.codeToHtml(code, { lang: validLang, theme: codeBlockTheme });
+        } else if (loadedLanguages.includes(langForShiki)) {
+          const html = highlighter.codeToHtml(code, { lang: langForShiki, theme: codeBlockTheme });
           if (isMounted) setHighlightedHtml(html);
           if (isMounted) setIsLoadingLanguage(false);
         } else {
@@ -111,7 +117,7 @@ const HighlightedCodeBlock: React.FC<HighlightedCodeBlockProps> = React.memo(({ 
             setIsLoadingLanguage(false);
           }
         }
-      } else {
+      } else { // Fallback if no highlighter
         if (isMounted) {
           setHighlightedHtml(`<pre class="shiki-fallback"><code>${liveHighlightStrings(escapeHtml(code))}</code></pre>`);
           setIsLoadingLanguage(false);
@@ -122,32 +128,27 @@ const HighlightedCodeBlock: React.FC<HighlightedCodeBlockProps> = React.memo(({ 
     return () => { isMounted = false; };
   }, [code, language, highlighter, codeBlockTheme, knownShortLangs]);
 
-  if (isLoadingLanguage && code) { 
-    return <div className="shiki-container"><pre className="shiki-fallback p-2 text-xs"><code>Loading syntax for "{language}"...</code></pre></div>;
+  if (isLoadingLanguage && code) {
+    return <div className="shiki-container"><pre className="shiki-fallback p-2 text-xs"><code>Loading syntax for "{language === 'html-live-preview' ? 'html' : language}"...</code></pre></div>;
   }
 
   if (!code) return null;
-  if (!highlighter && code) { 
-     return <div className="shiki-container"><pre className="shiki-fallback"><code>${liveHighlightStrings(escapeHtml(code))}</code></pre></div>;
-  }
-  if (!highlightedHtml && code && !isLoadingLanguage) { 
-     return <div className="shiki-container"><pre className="shiki-fallback"><code>${liveHighlightStrings(escapeHtml(code))}</code></pre></div>;
-  }
+  
+  const codeToRender = (!highlighter && code) || (!highlightedHtml && code && !isLoadingLanguage)
+    ? `<pre class="shiki-fallback"><code>${liveHighlightStrings(escapeHtml(code))}</code></pre>`
+    : highlightedHtml;
 
-
-  return <div className="shiki-container" dangerouslySetInnerHTML={{ __html: highlightedHtml }} />;
+  return <div className="shiki-container" dangerouslySetInnerHTML={{ __html: codeToRender }} />;
 });
 HighlightedCodeBlock.displayName = 'HighlightedCodeBlock';
 
 
 interface ChatInterfaceProps {
   messages: MessageType[];
-  setMessages: React.Dispatch<React.SetStateAction<MessageType[]>>; // To update step statuses
-  typingStates: Record<string, TypingState>;
-  setTypingStates: React.Dispatch<React.SetStateAction<Record<string, TypingState>>>;
+  setMessages: React.Dispatch<React.SetStateAction<MessageType[]>>;
   inputValue: string;
   onInputChange: (value: string) => void;
-  onSendMessage: () => void;
+  onSendMessage: (isReprompt?: boolean, repromptHistory?: any[]) => Promise<void>;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   isAISending: boolean;
   activeApiKey: string | null;
@@ -160,7 +161,6 @@ interface ChatInterfaceProps {
   typingSpeed: number;
   onStopGenerating: () => void;
   onAiOpenFileInEditor: (filePath: string) => Promise<void>;
-  onAiCreateFileAndType: (filePath: string, content: string) => Promise<void>;
   onAiExecuteTerminalCommand: (command: string) => Promise<{ success: boolean; output: string }>;
   onRefreshFileTree: () => void;
 }
@@ -168,8 +168,6 @@ interface ChatInterfaceProps {
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   messages,
   setMessages,
-  typingStates,
-  setTypingStates,
   inputValue,
   onInputChange,
   onSendMessage,
@@ -186,13 +184,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   onStopGenerating,
   onAiOpenFileInEditor,
   onAiExecuteTerminalCommand,
-  onAiCreateFileAndType,
   onRefreshFileTree,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isClient, setIsClient] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null); 
+  const viewportRef = useRef<HTMLDivElement | null>(null); 
+  const isUserScrolledUpRef = useRef(false);
   const [currentProcessingStepVisual, setCurrentProcessingStepVisual] = useState<{ messageId: string; stepId: string } | null>(null);
 
   useEffect(() => {
@@ -200,41 +199,66 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, []);
 
   useEffect(() => {
-    const scrollToBottom = () => {
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-      } else if (chatContainerRef.current) {
-        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    if (chatContainerRef.current) {
+      const viewportElement = chatContainerRef.current.querySelector<HTMLDivElement>('[data-radix-scroll-area-viewport]');
+      if (viewportElement) {
+        viewportRef.current = viewportElement;
+        const handleScroll = () => {
+          if (viewportRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = viewportRef.current;
+            isUserScrolledUpRef.current = scrollHeight > clientHeight && scrollHeight - scrollTop - clientHeight > 30;
+          }
+        };
+        viewportElement.addEventListener('scroll', handleScroll);
+        return () => {
+          if (viewportElement) { 
+            viewportElement.removeEventListener('scroll', handleScroll);
+          }
+        }
+      }
+    }
+  }, []); 
+
+  useEffect(() => {
+    const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+      if (messagesEndRef.current && viewportRef.current && !isUserScrolledUpRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior });
       }
     };
-    const debouncedScrollToBottom = debounce(scrollToBottom, 50); 
-    debouncedScrollToBottom();
-  }, [
-    messages.length, 
-    messages[messages.length - 1]?.id, 
-    typingStates[messages[messages.length - 1]?.id]?.displayedText, 
-    currentProcessingStepVisual, 
-    messages[messages.length - 1]?.actionBlock?.steps.find(s => s.id === currentProcessingStepVisual?.stepId)?.currentStatus
-  ]);
+    const debouncedSmoothScroll = debounce(scrollToBottom, 100);
+    debouncedSmoothScroll();
+  }, [messages]);
+
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage && (lastMessage.role === 'user' || (lastMessage.role === 'assistant' && lastMessage.isTyping && lastMessage.content === ""))) {
+      if (messagesEndRef.current && viewportRef.current) {
+        isUserScrolledUpRef.current = false; 
+        setTimeout(() => { 
+            if (messagesEndRef.current) {
+                 messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+            }
+        }, 0);
+      }
+    }
+  }, [messages]);
 
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onInputChange(e.target.value);
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      const newHeight = Math.min(e.target.scrollHeight, 150);
+      const newHeight = Math.min(e.target.scrollHeight, 150); 
       textareaRef.current.style.height = `${newHeight}px`;
     }
   };
 
   const getActionStepIcon = (type: AiActionStep['type']) => {
     switch (type) {
-      case 'createFile':
-        return <FileIconLucide className="ai-action-step-icon" />;
-      case 'createFolder':
-        return <FolderIcon className="ai-action-step-icon" />; // Using FolderIcon for createFolder
       case 'runCommand':
         return <TerminalIconLucide className="ai-action-step-icon" />;
+      case 'searchGoogle':
+        return <Search className="ai-action-step-icon" />;
       case 'startApplication':
         return <PlayCircle className="ai-action-step-icon" />;
       default:
@@ -242,10 +266,56 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
+  const rePromptAIWithSearchResults = useCallback(async (originalUserQueryId: string, searchResultsText: string, originalAiMessageId: string) => {
+    let originalUserMessageIndex = messages.findIndex(msg => msg.id === originalAiMessageId) -1;
+    while(originalUserMessageIndex >= 0 && messages[originalUserMessageIndex].role !== 'user') {
+        originalUserMessageIndex--;
+    }
+    const originalUserMessage = originalUserMessageIndex >= 0 ? messages[originalUserMessageIndex] : null;
+
+    if (!originalUserMessage) {
+      console.error("Could not find original user message for re-prompting with search results.");
+      toast.error("Internal error: Could not process search results effectively.");
+      setMessages(prev => prev.map(msg => msg.id === originalAiMessageId ? { ...msg, isTyping: false, _actionsProcessed: true, content: msg.content + "\n\n[Error: Could not re-prompt with search results]" } : msg));
+      return;
+    }
+
+    const searchContextContent = `CONTEXT FROM PREVIOUS SEARCH (for your query: "${originalUserMessage.content}"):\n${searchResultsText}\n\nBased on this information, please provide your answer to my original request.`;
+
+    const historyForReprompt = messages
+      .slice(0, originalUserMessageIndex + 1) 
+      .filter(msg => !(msg.role === 'assistant' && msg.content.startsWith("Hello! I'm CodeForge") && messages.length <=2))
+      .filter(msg => msg.role === 'user' || (msg.role === 'assistant' && !msg.isTyping && !msg.actionBlock && !msg._isSearchResultContext))
+      .map(msg => ({ role: msg.role === 'user' ? 'user' : 'model', parts: [{ text: msg.content }] }));
+    
+    const repromptWithContextHistory = [...historyForReprompt, { role: 'user' as const, parts: [{ text: searchContextContent }] }];
+
+    setMessages(prev => prev.map(msg =>
+      msg.id === originalAiMessageId ? {
+        ...msg,
+        content: (msg._mainContentBefore || "") + "\n\nProcessing search results...", 
+        isTyping: true, 
+        _currentTextPart: 'after', 
+        _mainContentBefore: (msg._mainContentBefore || "") + "\n\nProcessing search results...",
+        _mainContentAfter: "", 
+        actionBlock: { 
+            ...msg.actionBlock!,
+            steps: msg.actionBlock!.steps.map(s => s.type === 'searchGoogle' && s.currentStatus === 'success' ? s : {...s, currentStatus: s.currentStatus === 'pending' ? 'idle' : s.currentStatus})
+        }
+      } : msg
+    ));
+    
+    await onSendMessage(true, repromptWithContextHistory);
+
+  }, [messages, onSendMessage, setMessages]);
+
   const processActionsSequentially = useCallback(async (messageId: string, actionBlock: AiActionBlock) => {
+    let searchStepProcessedSuccessfully = false;
+    let searchResultsOutput = "";
+
     for (const step of actionBlock.steps) {
       setCurrentProcessingStepVisual({ messageId, stepId: step.id });
-      setMessages(prev => prev.map(msg => 
+      setMessages(prev => prev.map(msg =>
         msg.id === messageId && msg.actionBlock ? {
           ...msg,
           actionBlock: {
@@ -261,33 +331,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       try {
         switch (step.type) {
-          case 'createFile':
-            if (step.targetPath && typeof step.content === 'string') {
-              await onAiCreateFileAndType(step.targetPath, step.content);
-              success = true;
-            } else {
-              throw new Error("Missing targetPath or content for createFile action.");
-            }
-            break;
-          case 'createFolder':
-            if (step.targetPath) {
-              // Assuming API handles folder creation via a similar mechanism or a dedicated one
-              // For now, let's simulate it with a POST to /api/files with a 'createFolder' type
-              const apiResponse = await fetch('/api/files', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ targetPath: step.targetPath, type: 'createFolder' }),
-              });
-              if (!apiResponse.ok) {
-                const errorData = await apiResponse.json().catch(() => ({}));
-                throw new Error(errorData.error || `Failed to create folder ${step.targetPath}`);
-              }
-              await onRefreshFileTree(); // Refresh file tree after successful creation
-              success = true;
-            } else {
-              throw new Error("Missing targetPath for createFolder action.");
-            }
-            break;
           case 'runCommand':
           case 'startApplication':
             if (step.command) {
@@ -297,6 +340,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
               if (!success) stepErrorMessage = result.output || "Command execution failed.";
             } else {
               throw new Error("Missing command for runCommand/startApplication action.");
+            }
+            break;
+          case 'searchGoogle':
+            if (step.query) {
+              const searchApiResp = await fetch('/api/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: step.query }),
+              });
+              const searchData = await searchApiResp.json();
+              success = searchApiResp.ok && !searchData.error;
+              stepOutput = success ? `Search for "${step.query}" returned ${searchData.results?.length || 0} results.\n\n${searchData.results?.map((r: any) => `Title: ${r.title}\nLink: ${r.link}\nSnippet: ${r.snippet}`).join('\n\n---\n\n') || 'No items found.'}` : (searchData.error || "Search request failed.");
+              if (!success) stepErrorMessage = searchData.error || "Search request failed.";
+              else {
+                searchStepProcessedSuccessfully = true;
+                searchResultsOutput = stepOutput;
+              }
+            } else {
+              throw new Error("Missing query for searchGoogle action.");
             }
             break;
           default:
@@ -309,47 +371,53 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         stepErrorMessage = error.message || "An unknown error occurred during action execution.";
       }
 
-      setMessages(prev => prev.map(msg => 
+      setMessages(prev => prev.map(msg =>
         msg.id === messageId && msg.actionBlock ? {
           ...msg,
           actionBlock: {
             ...msg.actionBlock,
-            steps: msg.actionBlock.steps.map(s => s.id === step.id ? { 
-              ...s, 
+            steps: msg.actionBlock.steps.map(s => s.id === step.id ? {
+              ...s,
               currentStatus: success ? 'success' : 'error',
               output: stepOutput,
-              errorMessage: stepErrorMessage 
+              errorMessage: stepErrorMessage
             } : s)
           }
         } : msg
       ));
-      if (!success && step.type !== 'runCommand' && step.type !== 'startApplication') { // Stop on critical errors for file ops
-          toast.error(`Action failed: ${step.description}. ${stepErrorMessage}`);
+
+      if (!success) {
+          toast.error(`Action "${step.description}" failed: ${stepErrorMessage}`);
+          setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, _actionsProcessed: true, isTyping: false } : msg));
+          setCurrentProcessingStepVisual(null);
+          return; 
+      }
+      if (step.type === 'searchGoogle' && success) {
           break; 
       }
     }
     setCurrentProcessingStepVisual(null);
-    // After all actions are processed, trigger typing of _mainContentAfter if it exists
-    setMessages(prev => prev.map(msg => {
-      if (msg.id === messageId) {
-        const shouldTypeAfter = !!msg._mainContentAfter;
-        return {
-          ...msg,
-          _actionsProcessed: true,
-          content: shouldTypeAfter ? "" : msg.content, // Reset content if typing after, else keep
-          isTyping: shouldTypeAfter,
-          _currentTextPart: shouldTypeAfter ? 'after' : msg._currentTextPart,
-          _mainContentBefore: shouldTypeAfter ? msg._mainContentAfter : msg._mainContentBefore, // Prepare for typing 'after' part
-          _mainContentAfter: shouldTypeAfter ? "" : msg._mainContentAfter, // Clear after it's moved
-        };
-      }
-      return msg;
-    }));
-    if (messages.find(m => m.id === messageId)?._mainContentAfter && typingSpeed > 0) {
-        setTypingStates(prev => ({...prev, [messageId]: { displayedText: "", charIndex: 0 }}));
-    }
 
-  }, [onAiCreateFileAndType, onAiExecuteTerminalCommand, onRefreshFileTree, setMessages, typingSpeed, setTypingStates]);
+    if (searchStepProcessedSuccessfully) {
+      await rePromptAIWithSearchResults(messageId, searchResultsOutput, messageId);
+    } else {
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === messageId) {
+          const shouldTypeAfter = !!msg._mainContentAfter;
+          return {
+            ...msg,
+            _actionsProcessed: true,
+            content: shouldTypeAfter ? "" : msg.content,
+            isTyping: shouldTypeAfter,
+            _currentTextPart: shouldTypeAfter ? 'after' : msg._currentTextPart,
+            _mainContentBefore: shouldTypeAfter ? msg._mainContentAfter : msg._mainContentBefore,
+            _mainContentAfter: shouldTypeAfter ? "" : msg._mainContentAfter,
+          };
+        }
+        return msg;
+      }));
+    }
+  }, [onAiExecuteTerminalCommand, onRefreshFileTree, setMessages, typingSpeed, rePromptAIWithSearchResults]);
 
 
   useEffect(() => {
@@ -363,7 +431,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const renderActionBlock = (messageId: string, actionBlock: AiActionBlock) => {
     return (
       <div className="ai-action-progress-bar-container">
-        {actionBlock.project && <h3 className="text-base font-semibold mb-2 text-foreground">{actionBlock.project}</h3>}
         {actionBlock.steps.map((step) => {
           const isActiveStep = currentProcessingStepVisual?.messageId === messageId && currentProcessingStepVisual?.stepId === step.id;
           return (
@@ -386,17 +453,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     {step.commandDisplay || step.command}
                   </div>
                 )}
-                {step.targetPath && (step.type === 'createFile' || step.type === 'createFolder') && (
-                  <p className="ai-action-file-details">
-                    Target: <code>{step.targetPath}</code>
-                  </p>
+                {step.type === 'searchGoogle' && step.query && (
+                     <div className="ai-action-command-box">
+                        Search Query: "{step.query}"
+                     </div>
                 )}
                 {step.currentStatus === 'error' && step.errorMessage && (
                   <p className="ai-action-error-message">{step.errorMessage}</p>
                 )}
-                 {step.currentStatus === 'success' && step.output && step.type === 'runCommand' && (
+                 {step.currentStatus === 'success' && step.output && (step.type === 'runCommand' || step.type === 'searchGoogle') && (
                   <pre className="ai-action-command-box mt-1.5 !bg-background/50 max-h-20 overflow-y-auto text-xs">
-                    {step.output}
+                    {step.output.length > 300 ? step.output.substring(0, 300) + "..." : step.output}
                   </pre>
                 )}
               </div>
@@ -409,60 +476,110 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
 
   const formatMessageContent = useCallback((message: MessageType) => {
-    const { id: messageId, content, actionBlock, isTyping, _currentTextPart, _mainContentBefore, _mainContentAfter } = message;
-    const currentTypingState = typingStates[messageId];
-    
-    let textToDisplay = content; // Content is now the already typed portion
-    if (isTyping && currentTypingState && typingSpeed > 0) {
-      // If still typing, displayedText from typingState is more up-to-date for the current part
-      textToDisplay = currentTypingState.displayedText;
-    }
+    const {
+      id: messageId,
+      content,
+      actionBlock,
+      isTyping,
+      _currentTextPart,
+      _mainContentBefore,
+      _mainContentAfter,
+      _actionsProcessed
+    } = message;
 
+    let textToDisplay = content; 
 
     const renderMarkdown = (text: string | undefined) => {
       if (!text) return null;
       let processedText = text;
-      if (text.includes('|') || text.includes('+--')) {
-        processedText = convertAsciiTableToMarkdown(text);
+      
+      if (isTyping) {
+        processedText = liveHighlightMath(processedText); 
+        processedText = liveHighlightStrings(processedText); 
       }
+      
+      let markdownInput = text; 
+      if (text.includes('|') || text.includes('+--')) {
+        markdownInput = convertAsciiTableToMarkdown(text);
+      }
+      
+      const textForReactMarkdown = isTyping ? processedText : markdownInput;
+
       return (
         <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw]}
+          remarkPlugins={[remarkGfm, remarkMath]} 
+          rehypePlugins={[rehypeKatex, rehypeRaw]} // Always include rehypeRaw for HTML/JS/CSS
           components={{
             p: ({node, ...props}) => {
               return <p {...props} />;
             },
             code({ node, inline, className, children, ...props }) {
-              const match = /language-(\w+)/.exec(className || '');
+              const match = /language-(\w+(?:-live-preview)?)/.exec(className || '');
               const codeContent = String(children).replace(/\n$/, '');
+
+              // eslint-disable-next-line react-hooks/rules-of-hooks
+              const [isPreviewActive, setIsPreviewActive] = useState(false); // Local state for this block's preview
+
               if (!inline && match) {
-                const language = match[1];
+                const fullLanguage = match[1];
+                const isLivePreviewBlock = fullLanguage === 'html-live-preview';
+                const displayLanguage = isLivePreviewBlock ? 'html' : fullLanguage;
+                
                 const codeBlockId = `${messageId}-code-${node?.position?.start.offset || Math.random()}`;
+                
                 return (
-                  <div className="ai-chat-code-block relative my-3 rounded-md group/codeblock bg-muted/30">
-                    <div className="px-3 py-1.5 text-xs text-muted-foreground border-b border-border flex justify-between items-center bg-muted/50 rounded-t-md">
-                      <span>{language}</span>
-                      {enableCopy && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6 opacity-50 group-hover/codeblock:opacity-100 transition-opacity"
-                          onClick={() => onCopyToClipboard(codeContent, codeBlockId)}
-                          title="Copy code"
-                        >
-                          {copiedId === codeBlockId ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                        </Button>
-                      )}
+                  <div className="ai-chat-code-block relative my-3 rounded-md group/codeblock">
+                    <div className="ai-chat-code-block-header"> 
+                      <span>{displayLanguage}</span>
+                      <div className="flex items-center">
+                        {isLivePreviewBlock && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 opacity-70 group-hover/codeblock:opacity-100 transition-opacity mr-1"
+                            onClick={() => setIsPreviewActive(!isPreviewActive)}
+                            title={isPreviewActive ? "Show Code" : "Show Live Preview"}
+                          >
+                            {isPreviewActive ? <CodeIconLucide className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </Button>
+                        )}
+                        {enableCopy && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 opacity-50 group-hover/codeblock:opacity-100 transition-opacity"
+                            onClick={() => onCopyToClipboard(codeContent, codeBlockId)}
+                            title="Copy code"
+                          >
+                            {copiedId === codeBlockId ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <HighlightedCodeBlock
-                      code={codeContent}
-                      language={language}
-                      highlighter={highlighter}
-                      codeBlockTheme={selectedShikiTheme}
-                    />
+                    {!isPreviewActive && ( // Only show Shiki highlighted code if preview is NOT active
+                        <HighlightedCodeBlock
+                        code={codeContent}
+                        language={fullLanguage} 
+                        highlighter={highlighter}
+                        codeBlockTheme={selectedShikiTheme}
+                        />
+                    )}
+                     {isLivePreviewBlock && isPreviewActive && (
+                        <div className="live-preview-iframe-container relative mt-1" style={{ height: '250px', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius-sm)', overflow: 'hidden', background: 'hsl(var(--background))' }}>
+                            <iframe
+                            srcDoc={codeContent} 
+                            title="Live Code Preview"
+                            sandbox="allow-scripts" // Be cautious with this in production
+                            className="w-full h-full border-none"
+                            />
+                        </div>
+                    )}
                   </div>
                 );
+              }
+              // Handle inline code, potentially with live highlighting if needed
+              if (inline && typeof children === 'string' && (children.includes('live-string') || children.includes('live-math'))) {
+                return <code className={cn("not-prose", className)} {...props} dangerouslySetInnerHTML={{ __html: children }} />;
               }
               return (
                 <code className={cn("not-prose", className)} {...props}>
@@ -472,34 +589,33 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             },
           }}
         >
-          {processedText}
+          {textForReactMarkdown}
         </ReactMarkdown>
       );
     };
     
-    const renderedMainContent = textToDisplay ? renderMarkdown(textToDisplay) : null;
-    // Render action block only if actions are not yet processed OR if they are processed and there's no "after" content to type
+    const renderedMainContent = textToDisplay || (_currentTextPart === 'before' && _mainContentBefore) || (_currentTextPart === 'after' && _mainContentAfter) ? renderMarkdown(textToDisplay) : null;
     const shouldRenderActionBlock = actionBlock && (!_actionsProcessed || ( _actionsProcessed && !_mainContentAfter && _currentTextPart !== 'after'));
     const renderedActionBlock = shouldRenderActionBlock ? renderActionBlock(messageId, actionBlock) : null;
 
-    // Determine if the typing cursor should be shown
-    const textBeingTyped = _currentTextPart === 'before' ? _mainContentBefore : _mainContentAfter;
-    const showTypingCursor = isTyping && textToDisplay.length < (textBeingTyped || "").length && typingSpeed > 0;
+    const textBeingFullyTyped = _currentTextPart === 'before' ? _mainContentBefore : _mainContentAfter;
+    const showTypingCursor = isTyping && textToDisplay.length < (textBeingFullyTyped || "").length && typingSpeed > 0;
+
 
     return (
       <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1">
-        {_currentTextPart === 'before' || !_actionBlock || _actionsProcessed ? renderedMainContent : null}
+        {_currentTextPart === 'before' || !actionBlock || _actionsProcessed ? renderedMainContent : null}
         {renderedActionBlock}
         {_currentTextPart === 'after' && _actionsProcessed ? renderedMainContent : null}
         {showTypingCursor &&
          <span key={`${messageId}-cursor`} className="inline-block h-4 w-1 bg-primary animate-blink ml-0.5"></span>}
       </div>
     );
-  }, [copiedId, highlighter, selectedShikiTheme, enableCopy, onCopyToClipboard, typingSpeed, typingStates]);
+  }, [copiedId, highlighter, selectedShikiTheme, enableCopy, onCopyToClipboard, typingSpeed, currentProcessingStepVisual]);
 
   return (
     <>
-      <ScrollArea className="flex-1 p-3" ref={chatContainerRef}>
+      <ScrollArea className="flex-1 p-3 min-h-0" ref={chatContainerRef}> 
         {messages.map((message) => (
             <div
               key={message.id}
@@ -529,8 +645,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </span>
                 {message.role === "assistant" &&
                   !message.isTyping &&
-                  message.content && 
-                  !message.actionBlock && // Only show copy for simple text messages
+                  message.content &&
+                  !message.actionBlock &&
                     <Button
                       size="icon"
                       variant="ghost"
@@ -595,7 +711,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 title="Insert code snippet (coming soon)"
                 disabled
               >
-                <Code className="h-4 w-4" />
+                <CodeBlockIcon className="h-4 w-4" />
               </Button>
               <Button
                 size="icon"
@@ -610,7 +726,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
               )}
             </div>
             <Button
-              onClick={onSendMessage}
+              onClick={() => onSendMessage()} 
               disabled={
                 !inputValue.trim() ||
                 isAISending ||

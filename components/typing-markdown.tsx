@@ -1,9 +1,10 @@
+// components/typing-markdown.tsx
 "use client"
 
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'; // This is an ESM import
 import { cn } from '@/lib/utils';
 
 interface TypingMarkdownProps {
@@ -25,7 +26,7 @@ export function TypingMarkdown({
   enableCopy = true,
   skipAnimation = false,
   theme = 'system',
-  codeBlockTheme = 'vscode-dark',
+  codeBlockTheme = 'vscode-dark', // Defaulting to vscDarkPlus style
   proseSize = 'base',
   syntaxHighlightEnabled = true,
 }: TypingMarkdownProps) {
@@ -63,29 +64,51 @@ export function TypingMarkdown({
     };
   }, [content, typingSpeed]);
 
+  // Determine the actual syntax highlighter style based on codeBlockTheme
+  // For simplicity, this example sticks to vscDarkPlus.
+  // A more robust solution would map codeBlockTheme to different style objects from react-syntax-highlighter.
+  const syntaxHighlighterStyle = vscDarkPlus;
+
+
   return (
-    <div className={cn('prose dark:prose-invert max-w-none', className)}>
+    <div className={cn('prose dark:prose-invert max-w-none', 
+      proseSize === 'sm' && 'prose-sm',
+      proseSize === 'lg' && 'prose-lg',
+      className
+    )}>
       <ReactMarkdown
         components={{
-          code({ node, inline, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || '');
-            return !inline && match ? (
-              <SyntaxHighlighter
-                style={vscDarkPlus}
-                language={match[1]}
-                PreTag="div"
-                className="rounded-md !bg-zinc-900 !p-4"
+          code({ node, inline, className: langClassName, children, ...props }) {
+            const match = /language-(\w+)/.exec(langClassName || '');
+            const lang = match ? match[1] : undefined;
+            
+            return !inline && lang && syntaxHighlightEnabled ? (
+              <div className="not-prose my-4 rounded-md bg-zinc-900 overflow-hidden"> {/* Container for better styling control */}
+                <SyntaxHighlighter
+                  style={syntaxHighlighterStyle}
+                  language={lang}
+                  PreTag="div"
+                  className="!p-4 !text-sm" // Override default padding and ensure consistent text size
+                  showLineNumbers // Example: enable line numbers
+                  lineNumberStyle={{ minWidth: '2.25em', opacity: 0.5, userSelect: 'none' }}
+                  {...props}
+                >
+                  {String(children).replace(/\n$/, '')}
+                </SyntaxHighlighter>
+              </div>
+            ) : (
+              <code 
+                className={cn(
+                  "rounded-sm bg-zinc-200 px-1.5 py-0.5 font-mono text-[0.875em]", // Adjusted size
+                  "dark:bg-zinc-800 dark:text-zinc-300",
+                  langClassName
+                )} 
                 {...props}
               >
-                {String(children).replace(/\n$/, '')}
-              </SyntaxHighlighter>
-            ) : (
-              <code className={cn("rounded-md bg-zinc-200 px-1.5 py-0.5 font-mono text-sm dark:bg-zinc-800", className)} {...props}>
                 {children}
               </code>
             );
           },
-          // Add table styling
           table: ({ children }) => (
             <div className="my-6 w-full overflow-y-auto rounded-lg border dark:border-zinc-800">
               <table className="w-full border-collapse text-sm">
@@ -118,13 +141,11 @@ export function TypingMarkdown({
               {children}
             </td>
           ),
-          // Add blockquote styling
           blockquote: ({ children }) => (
             <blockquote className="mt-6 border-l-4 border-zinc-300 pl-6 italic text-zinc-800 dark:border-zinc-700 dark:text-zinc-200">
               {children}
             </blockquote>
           ),
-          // Add list styling
           ul: ({ children }) => (
             <ul className="list-disc space-y-2 pl-6 marker:text-zinc-500">
               {children}
@@ -135,7 +156,6 @@ export function TypingMarkdown({
               {children}
             </ol>
           ),
-          // Add heading styling
           h1: ({ children }) => (
             <h1 className="mt-8 mb-4 text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
               {children}
@@ -151,7 +171,6 @@ export function TypingMarkdown({
               {children}
             </h3>
           ),
-          // Add link styling
           a: ({ href, children }) => (
             <a
               href={href}
@@ -160,7 +179,6 @@ export function TypingMarkdown({
               {children}
             </a>
           ),
-          // Add horizontal rule styling
           hr: () => (
             <hr className="my-8 border-zinc-200 dark:border-zinc-800" />
           ),

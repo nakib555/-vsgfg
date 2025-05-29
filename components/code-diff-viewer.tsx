@@ -3,15 +3,13 @@
 
 import React, { useMemo } from 'react';
 import { CodeFile } from '@/types/file';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { FileText, GitCompareArrows } from 'lucide-react'; 
+import { ScrollArea, Badge } from '@/components/ui'; // Consolidated import
+import { FileText, GitCompareArrows } from 'lucide-react';
 import { cn } from '@/lib/utils';
-// Removed: import { Button } from "@/components/ui/button"; (X icon was not used here)
 
 interface CodeDiffViewerProps {
   file: CodeFile | null;
-  onClose?: () => void; // onClose is passed but not used in this component's rendering
+  onClose?: () => void;
 }
 
 const generateDiff = (original: string, current: string) => {
@@ -31,11 +29,10 @@ const generateDiff = (original: string, current: string) => {
       if (oLine === cLine) {
         diffResult.push({ type: 'common', originalLine: oLine, currentLine: cLine, originalLineNum: originalLineNum++, currentLineNum: currentLineNum++ });
       } else {
-        // If lines differ, mark original as removed and current as added
-        if (oLine !== undefined) { // Check if original line exists before marking as removed
+        if (oLine !== undefined) {
           diffResult.push({ type: 'removed', originalLine: oLine, originalLineNum: originalLineNum++ });
         }
-        if (cLine !== undefined) { // Check if current line exists before marking as added
+        if (cLine !== undefined) {
           diffResult.push({ type: 'added', currentLine: cLine, currentLineNum: currentLineNum++ });
         }
       }
@@ -52,8 +49,6 @@ const generateDiff = (original: string, current: string) => {
 const CodeDiffViewer: React.FC<CodeDiffViewerProps> = ({ file }) => {
   const originalContent = useMemo(() => {
     if (!file) return "";
-    // Simplified placeholder for original content for demo purposes
-    // In a real app, you'd fetch or store the original version of the file
     if (file.name === "example.js") {
       return "function greet(name) {\n  return `Hi, ${name}!`; // Original greeting\n}\n\nconsole.log(greet('Monaco User'));\n// An old line that was removed";
     }
@@ -73,7 +68,7 @@ const CodeDiffViewer: React.FC<CodeDiffViewerProps> = ({ file }) => {
 
   if (!file) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-4 bg-background h-full"> 
+      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-4 bg-background h-full">
         <GitCompareArrows size={48} className="mb-4 opacity-50" />
         <p>Select a file to view differences.</p>
       </div>
@@ -99,7 +94,7 @@ const CodeDiffViewer: React.FC<CodeDiffViewerProps> = ({ file }) => {
       </div>
 
       {!hasChanges ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-4"> 
+        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-4">
           <FileText size={64} className="mb-6 opacity-30" />
           <h3 className="text-xl font-semibold text-foreground">Files are identical</h3>
           <p className="text-sm">Both versions match exactly.</p>
@@ -115,14 +110,14 @@ const CodeDiffViewer: React.FC<CodeDiffViewerProps> = ({ file }) => {
                 <div
                   key={index}
                   className={cn(
-                    "flex -mx-3 px-3", 
-                    line.type === 'added' && 'bg-green-500/10 dark:bg-green-600/15', // Adjusted opacity for light/dark
-                    line.type === 'removed' && 'bg-red-500/10 dark:bg-red-600/15'    // Adjusted opacity for light/dark
+                    "flex -mx-3 px-3",
+                    line.type === 'added' && 'bg-green-500/10 dark:bg-green-600/15', 
+                    line.type === 'removed' && 'bg-red-500/10 dark:bg-red-600/15'    
                   )}
                 >
                   <span
                     className={cn(
-                      "w-8 text-right pr-3 select-none opacity-60", 
+                      "w-8 text-right pr-3 select-none opacity-60",
                       line.type === 'removed' ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'
                     )}
                   >
@@ -130,7 +125,7 @@ const CodeDiffViewer: React.FC<CodeDiffViewerProps> = ({ file }) => {
                   </span>
                   <span
                     className={cn(
-                      "w-8 text-right pr-3 select-none opacity-60", 
+                      "w-8 text-right pr-3 select-none opacity-60",
                        line.type === 'added' ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
                     )}
                   >
@@ -140,11 +135,11 @@ const CodeDiffViewer: React.FC<CodeDiffViewerProps> = ({ file }) => {
                     className={cn(
                       "pl-2 flex-1 whitespace-pre-wrap break-all",
                       line.type === 'added' && 'text-green-700 dark:text-green-300',
-                      line.type === 'removed' && 'text-red-700 dark:text-red-300' 
+                      line.type === 'removed' && 'text-red-700 dark:text-red-300'
                     )}
                   >
-                    <span className={cn("mr-1 font-bold", 
-                        line.type === 'added' ? 'text-green-600 dark:text-green-400' : 
+                    <span className={cn("mr-1 font-bold",
+                        line.type === 'added' ? 'text-green-600 dark:text-green-400' :
                         line.type === 'removed' ? 'text-red-600 dark:text-red-400' : ''
                     )}>
                         {line.type === 'added' && '+'}

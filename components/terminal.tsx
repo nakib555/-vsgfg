@@ -1,9 +1,9 @@
 // --- File: components/terminal.tsx ---
 "use client"
-import React from "react"; 
-import type { HTMLAttributes } from "react" // Import HTMLAttributes for div props
+import React from "react";
+import type { HTMLAttributes } from "react"
 import { useState, useRef, useEffect, useCallback } from "react"
-import { Plus, X, Shell, Loader2 } from "lucide-react" 
+import { Plus, X, Shell, Loader2, AlertCircle } from "lucide-react"
 import { formatTerminalOutput } from "@/lib/html-utils"
 import { cn } from "@/lib/utils"
 import { PowerShellService, getPowerShellInstance, removePowerShellInstance, type PowerShellOutput } from "@/lib/powershell-service"
@@ -15,12 +15,13 @@ interface TerminalCommand {
   isError?: boolean
 }
 
-interface TerminalProps extends HTMLAttributes<HTMLDivElement> { // Extend HTMLAttributes
+interface TerminalProps extends HTMLAttributes<HTMLDivElement> {
   theme?: string
   workingDirectory?: string
+  isInputDisabledBySetting?: boolean;
 }
 
-export interface TerminalRef { 
+export interface TerminalRef {
   executeExternalCommand: (command: string) => Promise<{ success: boolean; output: string }>;
 }
 
@@ -31,7 +32,7 @@ interface TabCompletionState {
   originalInput: string;
 }
 
-const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark", workingDirectory, className, ...props }, ref) => {
+const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark", workingDirectory, isInputDisabledBySetting = false, className, ...props }, ref) => {
   const [activeTabId, setActiveTabId] = useState("terminal-1")
   const [tabs, setTabs] = useState([{ id: "terminal-1", name: "PowerShell 1", type: "powershell" as const }])
   const [commandHistory, setCommandHistory] = useState<Record<string, TerminalCommand[]>>({
@@ -48,31 +49,52 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
     selectedIndex: 0,
     originalInput: "",
   });
-  const [isExecuting, setIsExecuting] = useState<Record<string, boolean>>({ "terminal-1": true }); 
+  const [isExecuting, setIsExecuting] = useState<Record<string, boolean>>({ "terminal-1": true });
 
   const inputRef = useRef<HTMLInputElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
 
+  // console.log(`[Terminal ${activeTabId}] Component RENDER. Current Path: ${currentPath}, Input: "${inputValue}", Executing: ${isExecuting[activeTabId]}, InputDisabledBySetting: ${isInputDisabledBySetting}`);
+
+
   React.useImperativeHandle(ref, () => ({
     executeExternalCommand: async (command: string) => {
-      if (!activeTabId) return { success: false, output: "No active terminal tab." };
-      console.log(`[Terminal ${activeTabId}] Executing external command: ${command}`);
+      // console.log(`[Terminal ${activeTabId}] executeExternalCommand CALLED with command: "${command}"`);
+      if (isInputDisabledBySetting) {
+        console.warn(`[Terminal ${activeTabId}] executeExternalCommand: Input is disabled by user setting. Command "${command}" not executed.`);
+        const disabledMsg = "Terminal input is currently disabled by user setting. Command not executed.";
+        setCommandHistory(prev => ({
+            ...prev,
+            [activeTabId]: [
+              ...(prev[activeTabId] || []),
+              { command: `(Blocked External) ${command}`, output: formatTerminalOutput(disabledMsg), isError: true }
+            ]
+          }));
+        return { success: false, output: disabledMsg };
+      }
+      if (!activeTabId) {
+        console.error(`[Terminal ${activeTabId}] executeExternalCommand: No active terminal tab.`);
+        return { success: false, output: "No active terminal tab." };
+      }
+      // console.log(`[Terminal ${activeTabId}] Executing external command: ${command}`);
       setIsExecuting(prev => ({ ...prev, [activeTabId]: true }));
-      
+
       setCommandHistory(prev => ({
         ...prev,
         [activeTabId]: [
           ...(prev[activeTabId] || []),
-          { command: command, output: '[Executing...]', isError: false }
+          { command: command, output: '[Executing external command...]', isError: false }
         ]
       }));
 
       const pwsh = getPowerShellInstance(activeTabId);
       try {
-        const result = await pwsh.executeCommand(command); 
+        const result = await pwsh.executeCommand(command);
+        // console.log(`[Terminal ${activeTabId}] executeExternalCommand: Result from PowerShellService:`, result);
         return { success: !result.isError, output: result.data };
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : "Unknown error executing external command";
+        console.error(`[Terminal ${activeTabId}] executeExternalCommand: Error:`, errorMsg);
         setCommandHistory(prev => {
             const currentTabHistory = prev[activeTabId] || [];
             const lastEntryIndex = currentTabHistory.length -1;
@@ -90,17 +112,24 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
   }));
 
   const currentTabIsExecuting = !!isExecuting[activeTabId];
+  // isInputEffectivelyDisabledForExecution is used to gate actual command sending
+  const isInputEffectivelyDisabledForExecution = currentTabIsExecuting || isInputDisabledBySetting;
+  // shouldFocusInput determines if the input field itself should try to grab focus
+  const shouldFocusInput = activeTabId && inputRef.current && !currentTabIsExecuting;
+
 
   useEffect(() => {
-    console.log(`[Terminal ${activeTabId}]: useEffect for [activeTabId, workingDirectory]. Initializing. Setting isExecuting = true.`);
-    setIsExecuting(prev => ({ ...prev, [activeTabId]: true })); 
+    // console.log(`[Terminal ${activeTabId}] MOUNT/UPDATE useEffect for [activeTabId, workingDirectory]. Initializing. Setting isExecuting = true. Current workingDirectory prop: ${workingDirectory}`);
+    setIsExecuting(prev => ({ ...prev, [activeTabId]: true }));
 
     const pwsh = getPowerShellInstance(activeTabId, workingDirectory);
+    // console.log(`[Terminal ${activeTabId}] Got PowerShell instance. Initial CWD for instance: ${pwsh.initialWorkingDir}`);
+
 
     const handleOutput = (output: PowerShellOutput) => {
-      console.log(`[Terminal ${activeTabId}]: Event 'output' received. Path: ${output.currentPath}, Error: ${output.isError}. Setting isExecuting = false.`);
+      // console.log(`[Terminal ${activeTabId}] EVENT 'output' received. Path: "${output.currentPath}", Error: ${output.isError}, Data: "${output.data.substring(0,50)}...". Setting isExecuting = false.`);
       if (!pwsh.isInitialized && !output.isError) {
-        console.log(`%c[Terminal ${activeTabId}] Calling pwsh.setAsInitialized from handleOutput. Path: ${output.currentPath}`, 'color: blue; font-weight: bold;');
+        // console.log(`%c[Terminal ${activeTabId}] Calling pwsh.setAsInitialized from handleOutput. Path: ${output.currentPath}`, 'color: blue; font-weight: bold;');
         pwsh.setAsInitialized(output.currentPath);
       }
 
@@ -108,26 +137,27 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
         const tabHistory = prev[activeTabId] || [];
         if (tabHistory.length > 0) {
           const lastCommandIndex = tabHistory.length - 1;
-          const lastCommand = tabHistory[lastCommandIndex];
-          
+          // const lastCommand = tabHistory[lastCommandIndex]; // Not strictly needed here
+
           const updatedHistory = [...tabHistory];
           updatedHistory[lastCommandIndex] = {
-            ...lastCommand,
-            output: formatTerminalOutput(output.data), 
+            ...updatedHistory[lastCommandIndex], // Preserve the original command
+            output: formatTerminalOutput(output.data),
             isError: output.isError
           };
           return { ...prev, [activeTabId]: updatedHistory };
         }
+        // This case might happen if initial prompt output comes before any user command
         return { ...prev, [activeTabId]: [...tabHistory, { command: "[System Info]", output: formatTerminalOutput(output.data), isError: output.isError }] };
       });
       setCurrentPath(output.currentPath);
       setIsExecuting(prev => ({ ...prev, [activeTabId]: false }));
     };
 
-    const handleInitialPath = ({ currentPath: pathValue }: { currentPath: string }) => { // Renamed path to pathValue
-      console.log(`[Terminal ${activeTabId}]: Event 'initialPath' received. Path: ${pathValue}. Setting isExecuting = false.`);
-      console.log(`%c[Terminal ${activeTabId}] Calling pwsh.setAsInitialized from handleInitialPath. Path: ${pathValue}`, 'color: blue; font-weight: bold;');
-      pwsh.setAsInitialized(pathValue); 
+    const handleInitialPath = ({ currentPath: pathValue }: { currentPath: string }) => {
+      // console.log(`[Terminal ${activeTabId}] EVENT 'initialPath' received. Path: "${pathValue}". Setting isExecuting = false.`);
+      // console.log(`%c[Terminal ${activeTabId}] Calling pwsh.setAsInitialized from handleInitialPath. Path: ${pathValue}`, 'color: blue; font-weight: bold;');
+      pwsh.setAsInitialized(pathValue);
       setCurrentPath(pathValue);
       setCommandHistory(prev => ({
         ...prev,
@@ -137,7 +167,7 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
     };
 
     const handleClose = () => {
-      console.log(`[Terminal ${activeTabId}]: Event 'close' received. Setting isExecuting = false.`);
+      // console.log(`[Terminal ${activeTabId}] EVENT 'close' received. Setting isExecuting = false.`);
       setCommandHistory(prev => ({
         ...prev,
         [activeTabId]: [...(prev[activeTabId] || []), { command: "", output: formatTerminalOutput("[Session Closed]"), isError: true }]
@@ -149,34 +179,42 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
     pwsh.on('initialPath', handleInitialPath);
     pwsh.on('close', handleClose);
 
+    // console.log(`[Terminal ${activeTabId}] Calling pwsh.initializeSessionIfNotInitialized().`);
     pwsh.initializeSessionIfNotInitialized()
+      .then(() => {
+        // console.log(`[Terminal ${activeTabId}] initializeSessionIfNotInitialized promise RESOLVED.`);
+      })
       .catch(err => {
-          console.error(`[Terminal ${activeTabId}]: Error from initializeSessionIfNotInitialized promise:`, err)
-          setIsExecuting(prev => ({ ...prev, [activeTabId]: false })); 
+          console.error(`[Terminal ${activeTabId}] Error from initializeSessionIfNotInitialized promise:`, err);
+          setIsExecuting(prev => ({ ...prev, [activeTabId]: false }));
+          setCommandHistory(prev => ({
+            ...prev,
+            [activeTabId]: [...(prev[activeTabId] || []), { command: "[Session Error]", output: formatTerminalOutput(`Initialization failed: ${(err as Error).message}`), isError: true }]
+          }));
       });
 
     return () => {
-      console.log(`[Terminal ${activeTabId}]: Cleaning up listeners for tab.`);
+      // console.log(`[Terminal ${activeTabId}] CLEANUP useEffect for [activeTabId, workingDirectory]. Removing listeners.`);
       pwsh.off('output', handleOutput);
       pwsh.off('initialPath', handleInitialPath);
       pwsh.off('close', handleClose);
     };
-  }, [activeTabId, workingDirectory]); 
+  }, [activeTabId, workingDirectory]); // Added workingDirectory as it's used in getPowerShellInstance
 
   const addTab = () => {
     const newId = `terminal-${Date.now()}`
-    console.log(`[Terminal] Adding new tab ${newId}`);
+    // console.log(`[Terminal] Adding new tab ${newId}`);
     setTabs([...tabs, { id: newId, name: `PowerShell ${tabs.length + 1}`, type: "powershell" as const }])
     setCommandHistory(prev => ({ ...prev, [newId]: [] }))
     setCommandStack(prev => ({ ...prev, [newId]: [] }))
-    setIsExecuting(prev => ({ ...prev, [newId]: true })); 
+    setIsExecuting(prev => ({ ...prev, [newId]: true }));
     setActiveTabId(newId)
   }
 
   const removeTab = (id: string) => {
     if (tabs.length === 1) return
-    console.log(`[Terminal] Removing tab ${id}`);
-    removePowerShellInstance(id) 
+    // console.log(`[Terminal] Removing tab ${id}`);
+    removePowerShellInstance(id)
     const newTabs = tabs.filter((tab) => tab.id !== id)
     setTabs(newTabs)
 
@@ -185,8 +223,8 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
     setIsExecuting(newIsExecuting);
 
     if (activeTabId === id) {
-      const newActiveTabId = newTabs[0]?.id || ""; 
-      console.log(`[Terminal] Active tab was removed, switching to ${newActiveTabId}`);
+      const newActiveTabId = newTabs[0]?.id || "";
+      // console.log(`[Terminal] Active tab was removed, switching to ${newActiveTabId}`);
       setActiveTabId(newActiveTabId);
     }
     setCommandHistory(prev => { const newState = { ...prev }; delete newState[id]; return newState; });
@@ -194,10 +232,24 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
   }
 
   const executeUserCommand = async (command: string) => {
+    // console.log(`[Terminal ${activeTabId}] executeUserCommand CALLED with command: "${command}"`);
+    if (isInputDisabledBySetting) {
+        console.warn(`[Terminal ${activeTabId}] executeUserCommand: Input is disabled by user setting. Command "${command}" NOT EXECUTED.`);
+        setCommandHistory(prev => ({
+            ...prev,
+            [activeTabId]: [
+              ...(prev[activeTabId] || []),
+              { command: command, output: formatTerminalOutput("Terminal input is currently disabled by user setting. Command not executed."), isError: true }
+            ]
+          }));
+        setInputValue("");
+        return;
+    }
     if (!command.trim() || currentTabIsExecuting) {
+      // console.log(`[Terminal ${activeTabId}] executeUserCommand: Command empty or already executing. Input: "${command}", Executing: ${currentTabIsExecuting}`);
       return;
     }
-    console.log(`[Terminal ${activeTabId}] executeUserCommand: ${command}. Setting isExecuting = true.`);
+    // console.log(`[Terminal ${activeTabId}] executeUserCommand: Processing "${command}". Setting isExecuting = true.`);
     setIsExecuting(prev => ({ ...prev, [activeTabId]: true }));
 
     const currentStack = commandStack[activeTabId] || [];
@@ -208,7 +260,7 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
       ...prev,
       [activeTabId]: [
         ...(prev[activeTabId] || []),
-        { command: command, output: '', isError: false } 
+        { command: command, output: '', isError: false } // Output will be filled by the event handler
       ]
     }));
 
@@ -216,18 +268,30 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
     setCompletions({ completions: [], selectedIndex: 0, originalInput: "" });
 
     if (command.toLowerCase() === "clear" || command.toLowerCase() === "cls") {
+      // console.log(`[Terminal ${activeTabId}] executeUserCommand: Clearing history.`);
       setCommandHistory(prev => ({ ...prev, [activeTabId]: [] }));
       const pwsh = getPowerShellInstance(activeTabId);
-      await pwsh.executeCommand("Write-Host -NoNewline ''");
+      await pwsh.executeCommand("Write-Host -NoNewline ''"); // To get prompt back
+      // console.log(`[Terminal ${activeTabId}] executeUserCommand: Clear command finished.`);
       return;
     }
 
     const pwsh = getPowerShellInstance(activeTabId);
-    await pwsh.executeCommand(command); 
+    // console.log(`[Terminal ${activeTabId}] executeUserCommand: Sending command "${command}" to PowerShellService.`);
+    await pwsh.executeCommand(command);
+    // console.log(`[Terminal ${activeTabId}] executeUserCommand: Command "${command}" sent. Waiting for output event.`);
   }
 
   const handleTabCompletion = async () => {
-    if (!inputValue.trim() || currentTabIsExecuting) return;
+    // console.log(`[Terminal ${activeTabId}] handleTabCompletion CALLED. Input: "${inputValue}"`);
+    if (isInputDisabledBySetting) {
+        // console.log(`[Terminal ${activeTabId}] handleTabCompletion: Input disabled by setting. Aborting.`);
+        return;
+    }
+    if (!inputValue.trim() || currentTabIsExecuting) {
+      // console.log(`[Terminal ${activeTabId}] handleTabCompletion: Input empty or executing. Aborting.`);
+      return;
+    }
     const pwsh = getPowerShellInstance(activeTabId);
 
     let currentCompletions = completions.completions;
@@ -235,10 +299,11 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
     let currentOriginalInput = completions.originalInput;
 
     if (currentCompletions.length === 0 || inputValue !== currentCompletions[currentSelectedIndex]) {
-      console.log(`[Terminal ${activeTabId}] Tab completion: Fetching new. Input: "${inputValue}"`);
+      // console.log(`[Terminal ${activeTabId}] Tab completion: Fetching new. Input: "${inputValue}"`);
       setIsExecuting(prev => ({ ...prev, [activeTabId]: true }));
       const result = await pwsh.getTabCompletions(inputValue, inputValue.length);
       setIsExecuting(prev => ({ ...prev, [activeTabId]: false }));
+      // console.log(`[Terminal ${activeTabId}] Tab completion: Received completions:`, result.completions);
       if (result.completions.length > 0) {
         currentCompletions = result.completions;
         currentSelectedIndex = 0;
@@ -252,7 +317,7 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
     } else {
       currentSelectedIndex = (currentSelectedIndex + 1) % currentCompletions.length;
       setInputValue(currentCompletions[currentSelectedIndex]);
-      console.log(`[Terminal ${activeTabId}] Tab completion: Cycling. New selection: "${currentCompletions[currentSelectedIndex]}"`);
+      // console.log(`[Terminal ${activeTabId}] Tab completion: Cycling. New selection: "${currentCompletions[currentSelectedIndex]}"`);
     }
 
     setCompletions({
@@ -264,15 +329,16 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
 
 
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (currentTabIsExecuting && e.key !== 'Escape' && e.key !== 'Tab' && !(e.ctrlKey && e.key.toLowerCase() === 'c')) {
+    // console.log(`[Terminal ${activeTabId}] handleKeyDown: Key="${e.key}", Ctrl=${e.ctrlKey}, currentTabIsExecuting=${currentTabIsExecuting}, isInputDisabledBySetting=${isInputDisabledBySetting}`);
+    if (currentTabIsExecuting && e.key !== 'Escape' && !(e.ctrlKey && e.key.toLowerCase() === 'c')) {
       if (e.key === 'Enter') e.preventDefault();
+      // console.log(`[Terminal ${activeTabId}] handleKeyDown: Input actions (except Ctrl+C/Esc) blocked, command executing.`);
       return;
     }
     if (e.ctrlKey && e.key.toLowerCase() === 'c' && currentTabIsExecuting) {
-        console.log(`[Terminal ${activeTabId}] Ctrl+C pressed. Attempting to stop current command.`);
+        // console.log(`[Terminal ${activeTabId}] Ctrl+C pressed while executing. Attempting to stop current command.`);
         const pwsh = getPowerShellInstance(activeTabId);
         pwsh.emit('output', { data: "\n[Command Interrupted by User]", currentPath, isError: true });
-        setIsExecuting(prev => ({ ...prev, [activeTabId]: false }));
         setInputValue("");
         return;
     }
@@ -282,47 +348,62 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
 
     if (e.key === 'Enter') {
       e.preventDefault();
+      // console.log(`[Terminal ${activeTabId}] handleKeyDown: Enter pressed. Current input: "${inputValue}"`);
       await executeUserCommand(inputValue);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
+      if (isInputDisabledBySetting) return;
       if (currentCmdStack.length > 0 && historyIndex < currentCmdStack.length - 1) {
         const newIndex = historyIndex + 1;
         setHistoryIndex(newIndex);
-        setInputValue(currentCmdStack[currentCmdStack.length - 1 - newIndex] || '');
+        const newCmd = currentCmdStack[currentCmdStack.length - 1 - newIndex] || '';
+        setInputValue(newCmd);
+        // console.log(`[Terminal ${activeTabId}] handleKeyDown: ArrowUp. History index: ${newIndex}, Command: "${newCmd}"`);
       }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
+      if (isInputDisabledBySetting) return;
       if (historyIndex > -1) {
         const newIndex = historyIndex - 1;
         setHistoryIndex(newIndex);
-        setInputValue(newIndex === -1 ? '' : (currentCmdStack[currentCmdStack.length - 1 - newIndex] || ''));
+        const newCmd = newIndex === -1 ? '' : (currentCmdStack[currentCmdStack.length - 1 - newIndex] || '');
+        setInputValue(newCmd);
+        // console.log(`[Terminal ${activeTabId}] handleKeyDown: ArrowDown. History index: ${newIndex}, Command: "${newCmd}"`);
       } else if (historyIndex === -1) {
         setInputValue("");
+        // console.log(`[Terminal ${activeTabId}] handleKeyDown: ArrowDown. Cleared input.`);
       }
     } else if (e.key === 'Tab') {
       e.preventDefault();
+      // console.log(`[Terminal ${activeTabId}] handleKeyDown: Tab pressed.`);
       await handleTabCompletion();
     } else if (e.key === 'Escape') {
       if (completions.completions.length > 0) {
         e.preventDefault();
         setInputValue(completions.originalInput);
         setCompletions({ completions: [], selectedIndex: 0, originalInput: "" });
+        // console.log(`[Terminal ${activeTabId}] handleKeyDown: Escape pressed. Cleared completions, restored: "${completions.originalInput}"`);
       }
     } else {
       if (completions.completions.length > 0 && e.key.length === 1) {
         setCompletions({ completions: [], selectedIndex: 0, originalInput: "" });
+        // console.log(`[Terminal ${activeTabId}] handleKeyDown: Other key pressed. Cleared completions.`);
       }
     }
   };
 
   useEffect(() => {
-    if (activeTabId && inputRef.current && !currentTabIsExecuting) {
-      inputRef.current.focus();
+    if (shouldFocusInput) {
+      // console.log(`[Terminal ${activeTabId}] useEffect for focus: Focusing input. currentTabIsExecuting=${currentTabIsExecuting}`);
+      inputRef.current?.focus();
+    } else {
+      // console.log(`[Terminal ${activeTabId}] useEffect for focus: NOT focusing. currentTabIsExecuting=${currentTabIsExecuting}, inputRef.current=${!!inputRef.current}`);
     }
-  }, [activeTabId, currentTabIsExecuting]); 
+  }, [activeTabId, currentTabIsExecuting, shouldFocusInput]);
 
   useEffect(() => {
     if (contentRef.current) {
+      // console.log(`[Terminal ${activeTabId}] useEffect for scroll: Scrolling to bottom.`);
       contentRef.current.scrollTop = contentRef.current.scrollHeight;
     }
   }, [commandHistory, activeTabId]);
@@ -340,7 +421,7 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
   );
 
   return (
-    <div className={cn("h-full flex flex-col", className)} {...props} onClick={() => { if (inputRef.current && !currentTabIsExecuting) inputRef.current.focus(); }}>
+    <div className={cn("h-full flex flex-col", className)} {...props} onClick={() => { if (inputRef.current) inputRef.current.focus(); }}>
       <div className="h-8 border-b border-border flex items-center px-2 bg-muted/30">
         <div className="flex-1 flex items-center overflow-x-auto">
           {tabs.map((tab) => (
@@ -352,7 +433,7 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
               )}
               onClick={() => {
                 if (activeTabId !== tab.id) {
-                  console.log(`[Terminal] Switching tab to ${tab.id}`);
+                  // console.log(`[Terminal] Switching tab from ${activeTabId} to ${tab.id}`);
                   setActiveTabId(tab.id);
                 }
               }}
@@ -387,7 +468,7 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
               </span>
               <span className="ps-command ml-2" dangerouslySetInnerHTML={{ __html: formatTerminalOutput(item.command) }} />
             </div>
-            {item.output && ( 
+            {item.output && (
               <div className={cn("ps-output", item.isError ? "ps-error-output" : "")} dangerouslySetInnerHTML={{ __html: item.output }} />
             )}
           </div>
@@ -400,8 +481,13 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
               <span className="ps-prompt-path">{currentPath}</span>
               <span>&gt;</span>
             </span>
-            {currentTabIsExecuting && !inputValue && (commandHistory[activeTabId] || []).length > 0 && (commandHistory[activeTabId] || [])[commandHistory[activeTabId].length -1]?.output === '' && (
+            {currentTabIsExecuting && !inputValue && (commandHistory[activeTabId] || []).length > 0 && (commandHistory[activeTabId] || [])[commandHistory[activeTabId].length -1]?.output === '' && !isInputDisabledBySetting && (
                  <Loader2 className="h-4 w-4 animate-spin ml-2 text-muted-foreground" />
+            )}
+            {isInputDisabledBySetting && (
+                <span className="ml-2 text-xs text-destructive flex items-center">
+                    <AlertCircle className="h-3.5 w-3.5 mr-1"/> Input disabled in settings.
+                </span>
             )}
             <input
               ref={inputRef}
@@ -414,14 +500,17 @@ const Terminal = React.forwardRef<TerminalRef, TerminalProps>(({ theme = "dark",
                 }
               }}
               onKeyDown={handleKeyDown}
-              className="flex-1 bg-transparent border-none outline-none ml-2 text-foreground ps-command"
+              className={cn(
+                "flex-1 bg-transparent border-none outline-none ml-2 text-foreground ps-command",
+                isInputDisabledBySetting && "opacity-70"
+              )}
               autoFocus
               autoComplete="off"
               spellCheck="false"
-              disabled={currentTabIsExecuting}
+              placeholder={isInputDisabledBySetting ? "Input disabled (execution blocked)" : ""}
             />
           </div>
-          {completions.completions.length > 0 && (
+          {completions.completions.length > 0 && !isInputDisabledBySetting && (
             <div className="ps-completion-list ml-8 mt-1 text-xs">
               {completions.completions.map((completion, index) => (
                 <div

@@ -5,7 +5,7 @@ import React, { useEffect, useState, useRef } from "react"
 import Editor, { Monaco, loader, type OnMount } from "@monaco-editor/react"
 import type { editor as MonacoEditorTypes } from "monaco-editor"
 import type { CodeFile } from "@/types/file"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui" // Consolidated import
 import { Copy, Check, Save, Download, Settings2, Play } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
@@ -26,14 +26,14 @@ export const editorThemesList: { name: string; value: EditorTheme }[] = [
 
 interface CodeEditorProps {
   file: CodeFile | null
-  onContentChange?: (fileIdOrPath: string, newContent: string) => void // Changed to fileIdOrPath
+  onContentChange?: (fileIdOrPath: string, newContent: string) => void
   onRunCode?: (code: string, language: string) => void
   editorTheme?: EditorTheme;
-  typingTarget?: { path: string; content: string; onComplete?: () => void } | null; // Updated to include onComplete
+  typingTarget?: { path: string; content: string; onComplete?: () => void } | null;
   onTypingComplete?: (path: string) => void;
 }
 
-const AI_EDITOR_TYPING_SPEED = 10; // ms per character
+const AI_EDITOR_TYPING_SPEED = 10; 
 
 export default function CodeEditor({
   file,
@@ -55,10 +55,10 @@ export default function CodeEditor({
   const currentMonacoThemeToApply = editorTheme || (appTheme === "dark" || appTheme === "system" ? "vs-dark" : "vs");
 
   const handleEditorChange = (value: string | undefined) => {
-    if (isAiTyping) return; 
+    if (isAiTyping) return;
 
     if (file && value !== undefined) {
-      onContentChange?.(file.path, value); // Use file.path as identifier
+      onContentChange?.(file.path, value); 
       setCurrentEditorValue(value);
     }
   }
@@ -86,7 +86,7 @@ export default function CodeEditor({
     if (file) {
       console.log("Saving code (simulated for file):", file.name, currentEditorValue)
       toast.success(`${file.name} saved (simulated)`)
-      if (onContentChange) onContentChange(file.path, currentEditorValue); // Use file.path
+      if (onContentChange) onContentChange(file.path, currentEditorValue); 
     }
   }
 
@@ -126,50 +126,42 @@ export default function CodeEditor({
       
       let charIndex = 0;
       const targetContent = typingTarget.content;
-      editorRef.current.setValue(""); // Clear editor before typing
-      setCurrentEditorValue(""); // Also clear local state
+      editorRef.current.setValue(""); 
+      setCurrentEditorValue(""); 
 
       typingIntervalRef.current = setInterval(() => {
         if (charIndex < targetContent.length) {
           const currentTypedValue = targetContent.substring(0, charIndex + 1);
-          editorRef.current?.setValue(currentTypedValue); // Directly set value
-          editorRef.current?.revealPosition({lineNumber: editorRef.current.getModel()?.getLineCount() || 1, column: 1}); // Scroll to end
+          editorRef.current?.setValue(currentTypedValue); 
+          editorRef.current?.revealPosition({lineNumber: editorRef.current.getModel()?.getLineCount() || 1, column: 1}); 
 
           setCurrentEditorValue(currentTypedValue);
-          if (onContentChange) onContentChange(file.path, currentTypedValue); // Use file.path
+          if (onContentChange) onContentChange(file.path, currentTypedValue); 
 
           charIndex++;
         } else {
           if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
           typingIntervalRef.current = null;
           setIsAiTyping(false);
-          // Call the specific onComplete for this typing job first
           if (typingTarget.onComplete) typingTarget.onComplete();
-          // Then call the general onTypingComplete if it exists (might be for other UI updates)
           if (onTypingComplete) onTypingComplete(typingTarget.path);
         }
       }, AI_EDITOR_TYPING_SPEED);
 
-    } else if (!typingTarget && file) { // Normal file load or switch
-        if (typingIntervalRef.current) { // Stop any ongoing AI typing if file changes
+    } else if (!typingTarget && file) { 
+        if (typingIntervalRef.current) { 
             clearInterval(typingIntervalRef.current);
             typingIntervalRef.current = null;
             setIsAiTyping(false);
-            // If typing was interrupted, call onTypingComplete for the previous target
-            if(onTypingComplete && editorRef.current?.getModel()?.uri.toString() !== file.path) {
-                // This logic might be complex if typingTarget was for a different file.
-                // For simplicity, we assume typingTarget is cleared before file switch.
-            }
         }
         setCurrentEditorValue(file.content);
         if (editorRef.current) {
-            // Only set value if the model is different or content differs
             const currentModel = editorRef.current.getModel();
             if (!currentModel || currentModel.uri.toString() !== file.path || editorRef.current.getValue() !== file.content) {
                  editorRef.current.setValue(file.content);
             }
         }
-    } else if (!file && !typingTarget) { // No file and no typing target
+    } else if (!file && !typingTarget) { 
         if (typingIntervalRef.current) {
             clearInterval(typingIntervalRef.current);
             typingIntervalRef.current = null;
@@ -218,9 +210,9 @@ export default function CodeEditor({
       </div>
       <div className="flex-1 overflow-hidden">
         <Editor
-          key={`${file?.path || typingTarget?.path}-${currentMonacoThemeToApply}`} // Use path for key
+          key={`${file?.path || typingTarget?.path}-${currentMonacoThemeToApply}`} 
           height="100%"
-          path={file?.path || typingTarget?.path} // Provide path for model URI
+          path={file?.path || typingTarget?.path} 
           language={displayLanguage}
           value={currentEditorValue}
           theme={currentMonacoThemeToApply}

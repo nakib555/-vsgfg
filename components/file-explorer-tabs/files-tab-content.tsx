@@ -9,13 +9,13 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { CodeFile, FileTreeItem } from "@/types/file"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea } from "@/components/ui" // Consolidated import
 
 interface FilesTabContentProps {
   fileTree: FileTreeItem[];
   activeFile: CodeFile | null;
   onFileSelect: (file: FileTreeItem) => void;
-  getFileIcon: (fileName: string, itemPath?: string, isDirectory?: boolean, isActive?: boolean) => React.ReactNode; // Added isActive
+  getFileIcon: (fileName: string, itemPath?: string, isDirectory?: boolean, isActive?: boolean) => React.ReactNode;
   isExplorerLocked: boolean;
   expandedDirs: Set<string>;
   setExpandedDirs: React.Dispatch<React.SetStateAction<Set<string>>>;
@@ -59,7 +59,7 @@ export function FilesTabContent({
       <div key={item.id} className="group/treeitem text-sm leading-tight">
         <div
           className={cn(
-            "flex items-center justify-between py-[2px] pr-1 hover:bg-slate-700/20 cursor-pointer rounded-[3px]", // Even tighter py
+            "flex items-center justify-between py-[2px] pr-1 hover:bg-slate-700/20 cursor-pointer rounded-[3px]", 
             isActive && "bg-[#3A3D54] text-slate-50",
             !isActive && "text-slate-400 hover:text-slate-200",
           )}
@@ -85,7 +85,7 @@ export function FilesTabContent({
               <span className="w-4 shrink-0" />
             )}
             <div className="flex items-center justify-center w-4 h-4 mr-0.5">
-              {getFileIcon(item.name, item.path, item.isDirectory, isActive)} {/* Pass isActive */}
+              {getFileIcon(item.name, item.path, item.isDirectory, isActive)}
             </div>
             <span className={cn("truncate pt-px", isActive ? "text-slate-50" : "text-slate-300")}>{item.name}</span>
           </div>
