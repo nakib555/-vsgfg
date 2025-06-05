@@ -1,27 +1,36 @@
 /* app/globals.css */
 
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%; /* Default Light Theme Base */
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
+    /* Default Light Theme Base */
+    --background-h: 0; --background-s: 0%; --background-l: 100%; /* Split for consistency */
+    --foreground-h: 222.2; --foreground-s: 84%; --foreground-l: 4.9%;
+    --card-h: 0; --card-s: 0%; --card-l: 100%;
+    --card-foreground-h: 222.2; --card-foreground-s: 84%; --card-foreground-l: 4.9%;
+    --popover-h: 0; --popover-s: 0%; --popover-l: 100%;
+    --popover-foreground-h: 222.2; --popover-foreground-s: 84%; --popover-foreground-l: 4.9%;
+    --primary-h: 222.2; --primary-s: 47.4%; --primary-l: 11.2%;
+    --primary-foreground-h: 210; --primary-foreground-s: 40%; --primary-foreground-l: 98%;
+    --secondary-h: 210; --secondary-s: 40%; --secondary-l: 96.1%;
+    --secondary-foreground-h: 222.2; --secondary-foreground-s: 47.4%; --secondary-foreground-l: 11.2%;
+    --muted-h: 210; --muted-s: 40%; --muted-l: 96.1%;
+    --muted-foreground-h: 215.4; --muted-foreground-s: 16.3%; --muted-foreground-l: 46.9%;
+    --accent-h: 210; --accent-s: 40%; --accent-l: 96.1%;
+    --accent-foreground-h: 222.2; --accent-foreground-s: 47.4%; --accent-foreground-l: 11.2%;
+    --destructive-h: 0; --destructive-s: 84.2%; --destructive-l: 60.2%;
+    --destructive-foreground-h: 210; --destructive-foreground-s: 40%; --destructive-foreground-l: 98%;
+    --success-h: 142.1; --success-s: 76.2%; --success-l: 36.3%;
+    --success-foreground-h: 355.7; --success-foreground-s: 100%; --success-foreground-l: 97.3%;
+    --warning-h: 38; --warning-s: 92.7%; --warning-l: 50.2%;
+    --warning-foreground-h: 222.2; --warning-foreground-s: 84%; --warning-foreground-l: 4.9%;
+    --border-h: 214.3; --border-s: 31.8%; --border-l: 91.4%;
+    --input-h: 214.3; --input-s: 31.8%; --input-l: 91.4%;
+    --ring-h: 222.2; --ring-s: 84%; --ring-l: 4.9%;
+
     --code-keyword: 280 60% 70%;
     --code-string: 100 50% 50%;
     --code-comment: 215 10% 50%;
@@ -30,77 +39,61 @@
     --code-tag: 0 70% 60%;
     --code-attribute: 40 70% 60%;
     --search-highlight-bg: 48 96% 53.1%;
-    --destructive-foreground: 210 40% 98%;
-    --success: 142.1 76.2% 36.3%;
-    --success-foreground: 355.7 100% 97.3%;
-    --warning: 38 92.7% 50.2%;
-    --warning-foreground: 222.2 84% 4.9%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
     --font-ui: var(--font-inter);
     --font-mono: var(--font-jetbrains);
   }
 
   .dark { /* Default Dark Theme */
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --code-keyword: 280 60% 70%;
-    --code-string: 100 50% 50%;
-    --code-comment: 215 10% 50%;
-    --code-number: 30 70% 60%;
-    --code-boolean: 190 50% 60%;
-    --code-tag: 0 70% 60%;
-    --code-attribute: 40 70% 60%;
-    --search-highlight-bg: 48 96% 53.1%;
-    --destructive: 0 62.8% 50.6%;
-    --destructive-foreground: 210 40% 98%;
-    --success: 142.1 70.6% 45.3%;
-    --success-foreground: 144.9 80.4% 10%;
-    --warning: 48 96% 53.1%;
-    --warning-foreground: 223 47.4% 11.2%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --background-h: 222.2; --background-s: 84%; --background-l: 4.9%;
+    --foreground-h: 210; --foreground-s: 40%; --foreground-l: 98%;
+    --card-h: 222.2; --card-s: 84%; --card-l: 4.9%;
+    --card-foreground-h: 210; --card-foreground-s: 40%; --card-foreground-l: 98%;
+    --popover-h: 222.2; --popover-s: 84%; --popover-l: 4.9%;
+    --popover-foreground-h: 210; --popover-foreground-s: 40%; --popover-foreground-l: 98%;
+    --primary-h: 210; --primary-s: 40%; --primary-l: 98%;
+    --primary-foreground-h: 222.2; --primary-foreground-s: 47.4%; --primary-foreground-l: 11.2%;
+    --secondary-h: 217.2; --secondary-s: 32.6%; --secondary-l: 17.5%;
+    --secondary-foreground-h: 210; --secondary-foreground-s: 40%; --secondary-foreground-l: 98%;
+    --muted-h: 217.2; --muted-s: 32.6%; --muted-l: 17.5%;
+    --muted-foreground-h: 215; --muted-foreground-s: 20.2%; --muted-foreground-l: 65.1%;
+    --accent-h: 217.2; --accent-s: 32.6%; --accent-l: 17.5%;
+    --accent-foreground-h: 210; --accent-foreground-s: 40%; --accent-foreground-l: 98%;
+    --destructive-h: 0; --destructive-s: 62.8%; --destructive-l: 50.6%;
+    --destructive-foreground-h: 210; --destructive-foreground-s: 40%; --destructive-foreground-l: 98%;
+    --success-h: 142.1; --success-s: 70.6%; --success-l: 45.3%;
+    --success-foreground-h: 144.9; --success-foreground-s: 80.4%; --success-foreground-l: 10%;
+    --warning-h: 48; --warning-s: 96%; --warning-l: 53.1%;
+    --warning-foreground-h: 223; --warning-foreground-s: 47.4%; --warning-foreground-l: 11.2%;
+    --border-h: 217.2; --border-s: 32.6%; --border-l: 17.5%;
+    --input-h: 217.2; --input-s: 32.6%; --input-l: 17.5%;
+    --ring-h: 212.7; --ring-s: 26.8%; --ring-l: 83.9%;
   }
 
   .midnight-blue {
-    --background: 220 40% 10%;
-    --foreground: 210 30% 90%;
-    --card: 220 40% 12%;
-    --card-foreground: 210 30% 90%;
-    --popover: 220 40% 12%;
-    --popover-foreground: 210 30% 90%;
-    --primary: 200 70% 75%;
-    --primary-foreground: 220 40% 5%;
-    --secondary: 220 30% 20%;
-    --secondary-foreground: 210 30% 85%;
-    --muted: 220 30% 20%;
-    --muted-foreground: 210 25% 60%;
-    --accent: 220 30% 25%;
-    --accent-foreground: 200 70% 75%;
-    --destructive: 0 70% 55%;
-    --destructive-foreground: 210 30% 90%;
-    --success: 140 60% 45%;
-    --success-foreground: 210 30% 90%;
-    --warning: 40 80% 55%;
-    --warning-foreground: 220 40% 5%;
-    --border: 220 30% 25%;
-    --input: 220 30% 22%;
-    --ring: 200 70% 65%;
+    --background-h: 220; --background-s: 40%; --background-l: 10%;
+    --foreground-h: 210; --foreground-s: 30%; --foreground-l: 90%;
+    --card-h: 220; --card-s: 40%; --card-l: 12%;
+    --card-foreground-h: 210; --card-foreground-s: 30%; --card-foreground-l: 90%;
+    --popover-h: 220; --popover-s: 40%; --popover-l: 12%;
+    --popover-foreground-h: 210; --popover-foreground-s: 30%; --popover-foreground-l: 90%;
+    --primary-h: 200; --primary-s: 70%; --primary-l: 75%;
+    --primary-foreground-h: 220; --primary-foreground-s: 40%; --primary-foreground-l: 5%;
+    --secondary-h: 220; --secondary-s: 30%; --secondary-l: 20%;
+    --secondary-foreground-h: 210; --secondary-foreground-s: 30%; --secondary-foreground-l: 85%;
+    --muted-h: 220; --muted-s: 30%; --muted-l: 20%;
+    --muted-foreground-h: 210; --muted-foreground-s: 25%; --muted-foreground-l: 60%;
+    --accent-h: 220; --accent-s: 30%; --accent-l: 25%;
+    --accent-foreground-h: 200; --accent-foreground-s: 70%; --accent-foreground-l: 75%;
+    --destructive-h: 0; --destructive-s: 70%; --destructive-l: 55%;
+    --destructive-foreground-h: 210; --destructive-foreground-s: 30%; --destructive-foreground-l: 90%;
+    --success-h: 140; --success-s: 60%; --success-l: 45%;
+    --success-foreground-h: 210; --success-foreground-s: 30%; --success-foreground-l: 90%;
+    --warning-h: 40; --warning-s: 80%; --warning-l: 55%;
+    --warning-foreground-h: 220; --warning-foreground-s: 40%; --warning-foreground-l: 5%;
+    --border-h: 220; --border-s: 30%; --border-l: 25%;
+    --input-h: 220; --input-s: 30%; --input-l: 22%;
+    --ring-h: 200; --ring-s: 70%; --ring-l: 65%;
     --code-keyword: 270 60% 75%;
     --code-string: 90 50% 55%;
     --code-comment: 210 15% 55%;
@@ -112,29 +105,29 @@
   }
 
   .sandstone {
-    --background: 35 40% 92%;
-    --foreground: 30 30% 20%;
-    --card: 35 40% 95%;
-    --card-foreground: 30 30% 20%;
-    --popover: 35 40% 95%;
-    --popover-foreground: 30 30% 20%;
-    --primary: 25 60% 45%;
-    --primary-foreground: 35 40% 98%;
-    --secondary: 35 30% 85%;
-    --secondary-foreground: 25 60% 35%;
-    --muted: 35 30% 85%;
-    --muted-foreground: 30 25% 50%;
-    --accent: 35 30% 88%;
-    --accent-foreground: 25 60% 45%;
-    --destructive: 0 60% 50%;
-    --destructive-foreground: 35 40% 98%;
-    --success: 120 50% 40%;
-    --success-foreground: 35 40% 98%;
-    --warning: 40 70% 50%;
-    --warning-foreground: 30 30% 20%;
-    --border: 35 30% 80%;
-    --input: 35 30% 82%;
-    --ring: 25 60% 55%;
+    --background-h: 35; --background-s: 40%; --background-l: 92%;
+    --foreground-h: 30; --foreground-s: 30%; --foreground-l: 20%;
+    --card-h: 35; --card-s: 40%; --card-l: 95%;
+    --card-foreground-h: 30; --card-foreground-s: 30%; --card-foreground-l: 20%;
+    --popover-h: 35; --popover-s: 40%; --popover-l: 95%;
+    --popover-foreground-h: 30; --popover-foreground-s: 30%; --popover-foreground-l: 20%;
+    --primary-h: 25; --primary-s: 60%; --primary-l: 45%;
+    --primary-foreground-h: 35; --primary-foreground-s: 40%; --primary-foreground-l: 98%;
+    --secondary-h: 35; --secondary-s: 30%; --secondary-l: 85%;
+    --secondary-foreground-h: 25; --secondary-foreground-s: 60%; --secondary-foreground-l: 35%;
+    --muted-h: 35; --muted-s: 30%; --muted-l: 85%;
+    --muted-foreground-h: 30; --muted-foreground-s: 25%; --muted-foreground-l: 50%;
+    --accent-h: 35; --accent-s: 30%; --accent-l: 88%;
+    --accent-foreground-h: 25; --accent-foreground-s: 60%; --accent-foreground-l: 45%;
+    --destructive-h: 0; --destructive-s: 60%; --destructive-l: 50%;
+    --destructive-foreground-h: 35; --destructive-foreground-s: 40%; --destructive-foreground-l: 98%;
+    --success-h: 120; --success-s: 50%; --success-l: 40%;
+    --success-foreground-h: 35; --success-foreground-s: 40%; --success-foreground-l: 98%;
+    --warning-h: 40; --warning-s: 70%; --warning-l: 50%;
+    --warning-foreground-h: 30; --warning-foreground-s: 30%; --warning-foreground-l: 20%;
+    --border-h: 35; --border-s: 30%; --border-l: 80%;
+    --input-h: 35; --input-s: 30%; --input-l: 82%;
+    --ring-h: 25; --ring-s: 60%; --ring-l: 55%;
     --code-keyword: 260 50% 50%;
     --code-string: 110 40% 40%;
     --code-comment: 30 10% 50%;
@@ -159,19 +152,19 @@
     font-family: var(--font-ui);
   }
   .katex {
-    color: hsl(var(--foreground)) !important; 
-    font-size: 1.05em; 
+    color: hsl(var(--foreground-h) var(--foreground-s) var(--foreground-l)) !important;
+    font-size: 1.05em;
   }
-  .katex .text { 
+  .katex .text {
     font-family: var(--font-ui) !important;
   }
 }
 
 /* Terminal command styles */
-.ps-success { color: hsl(var(--success)); }
-.ps-error { color: hsl(var(--destructive)); }
+.ps-success { color: hsl(var(--success-h) var(--success-s) var(--success-l)); }
+.ps-error { color: hsl(var(--destructive-h) var(--destructive-s) var(--destructive-l)); }
 .ps-info { color: hsl(217.2, 91.2%, 59.8%); }
-.ps-command { color: hsl(var(--warning)); }
+.ps-command { color: hsl(var(--warning-h) var(--warning-s) var(--warning-l)); }
 
 .search-highlight {
   background-color: hsla(var(--search-highlight-bg), 0.3);
@@ -206,23 +199,23 @@
 .ai-chat-code-block .shiki-container > pre.shiki code,
 .ai-chat-code-block .shiki-container > pre.shiki-fallback code {
   font-family: var(--font-mono);
-  @apply p-0 block; 
+  @apply p-0 block;
 }
 
 .ai-chat-code-block .shiki-container > pre.shiki .line,
-.ai-chat-code-block .shiki-container > pre.shiki-fallback .line { 
-  @apply block relative pl-[3.25em] pr-3 py-px; 
+.ai-chat-code-block .shiki-container > pre.shiki-fallback .line {
+  @apply block relative pl-[3.25em] pr-3 py-px;
   counter-increment: lineNumber;
-  min-height: 1.625em; 
+  min-height: 1.625em;
 }
 
 .ai-chat-code-block .shiki-container > pre.shiki .line::before,
 .ai-chat-code-block .shiki-container > pre.shiki-fallback .line::before {
   content: counter(lineNumber);
   @apply absolute left-0 top-0 w-[2.75em] pr-2 text-right text-muted-foreground/70 select-none;
-  font-size: 0.8em; 
-  padding-top: inherit; 
-  line-height: inherit; 
+  font-size: 0.8em;
+  padding-top: inherit;
+  line-height: inherit;
 }
 .dark .ai-chat-code-block .shiki-container > pre.shiki .line::before,
 .dark .ai-chat-code-block .shiki-container > pre.shiki-fallback .line::before {
@@ -231,16 +224,16 @@
 
 
 .ai-chat-code-block .shiki-container > pre.shiki .line.highlighted {
-  background-color: hsl(var(--accent) / 0.5);
+  background-color: hsl(var(--accent-h) var(--accent-s) var(--accent-l) / 0.5);
 }
 
 .ai-chat-code-block .shiki-container > pre.shiki-fallback {
-  background-color: hsl(var(--muted) / 0.7);
-  color: hsl(var(--foreground));
+  background-color: hsl(var(--muted-h) var(--muted-s) var(--muted-l) / 0.7);
+  color: hsl(var(--foreground-h) var(--foreground-s) var(--foreground-l));
 }
 .ai-chat-code-block .shiki-container > pre.shiki-fallback code {
   white-space: pre-wrap;
-  @apply p-3; 
+  @apply p-3;
 }
 
 .ai-chat-code-block .shiki-container > pre::-webkit-scrollbar {
@@ -261,7 +254,7 @@
 @layer components {
   .prose {
     @apply text-foreground;
-    line-height: 1.75; 
+    line-height: 1.75;
   }
   .dark .prose, .midnight-blue .prose, .sandstone .prose {
     @apply text-foreground;
@@ -270,16 +263,16 @@
   .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
     @apply font-semibold tracking-tight text-foreground;
   }
-  .prose h1 { @apply text-2xl mt-8 mb-4; } 
+  .prose h1 { @apply text-2xl mt-8 mb-4; }
   .prose h2 { @apply text-xl mt-7 mb-3.5; }
   .prose h3 { @apply text-lg mt-6 mb-3; }
 
   .prose p {
-    @apply my-4; 
+    @apply my-4;
   }
 
   .prose a {
-    @apply text-primary hover:text-primary/80 font-medium underline underline-offset-4 transition-colors; 
+    @apply text-primary hover:text-primary/80 font-medium underline underline-offset-4 transition-colors;
   }
   .midnight-blue .prose a { @apply text-blue-400 hover:text-blue-300; }
   .sandstone .prose a { @apply text-orange-700 hover:text-orange-800; }
@@ -287,36 +280,36 @@
   .prose strong { @apply font-semibold text-foreground; }
 
   .prose blockquote {
-    @apply pl-5 py-3 italic border-l-[5px] border-border bg-muted/20 text-muted-foreground my-5 rounded-r-md shadow-sm; 
+    @apply pl-5 py-3 italic border-l-[5px] border-border bg-muted/20 text-muted-foreground my-5 rounded-r-md shadow-sm;
   }
   .dark .prose blockquote { @apply border-border bg-muted/30 text-muted-foreground; }
   .midnight-blue .prose blockquote { @apply border-accent/60 bg-accent/25 text-accent-foreground/80; }
   .sandstone .prose blockquote { @apply border-accent/60 bg-accent/35 text-accent-foreground/90; }
-  .prose blockquote p { @apply my-1; } 
+  .prose blockquote p { @apply my-1; }
 
 
   .prose ul, .prose ol {
-    @apply my-4 pl-6 space-y-2; 
+    @apply my-4 pl-6 space-y-2;
   }
-  .prose ul li::marker { @apply text-muted-foreground font-semibold text-lg; } 
+  .prose ul li::marker { @apply text-muted-foreground font-semibold text-lg; }
   .prose ol li::marker { @apply text-muted-foreground font-semibold; }
   .prose li > p { @apply my-1.5; }
   .prose ul ul, .prose ol ol, .prose ul ol, .prose ol ul {
-    @apply my-2 pl-5; 
+    @apply my-2 pl-5;
   }
-  .prose li .ai-chat-code-block, .prose blockquote .ai-chat-code-block { 
-    @apply my-2; 
+  .prose li .ai-chat-code-block, .prose blockquote .ai-chat-code-block {
+    @apply my-2;
   }
 
 
   .prose code { /* Inline code */
-    @apply bg-muted/70 text-foreground font-mono text-[0.875em] px-1.5 py-1 rounded-md border border-border/50; 
+    @apply bg-muted/70 text-foreground font-mono text-[0.875em] px-1.5 py-1 rounded-md border border-border/50;
   }
   .dark .prose code { @apply bg-muted/70 text-foreground border-border/50; }
   .midnight-blue .prose code { @apply bg-accent/30 text-accent-foreground/90 border-accent/40; }
   .sandstone .prose code { @apply bg-accent/40 text-accent-foreground/90 border-accent/50; }
 
-  .prose pre code { 
+  .prose pre code {
     color: inherit !important;
     padding: 0 !important;
     font-size: inherit !important;
@@ -325,38 +318,38 @@
   }
 
   .prose kbd {
-    @apply px-2.5 py-1.5 text-xs font-semibold text-foreground bg-muted border border-border rounded-md shadow-sm; 
+    @apply px-2.5 py-1.5 text-xs font-semibold text-foreground bg-muted border border-border rounded-md shadow-sm;
   }
   .dark .prose kbd { @apply bg-muted/80 border-border/70; }
   .midnight-blue .prose kbd { @apply bg-accent/50 border-accent/60 text-accent-foreground; }
   .sandstone .prose kbd { @apply bg-accent/60 border-accent/70 text-accent-foreground; }
 
   .prose mark {
-    @apply bg-yellow-300 dark:bg-yellow-600/40 text-yellow-950 dark:text-yellow-100 px-1 py-0.5 rounded; 
+    @apply bg-yellow-300 dark:bg-yellow-600/40 text-yellow-950 dark:text-yellow-100 px-1 py-0.5 rounded;
   }
   .midnight-blue .prose mark { @apply bg-yellow-600/50 text-yellow-50; }
   .sandstone .prose mark { @apply bg-yellow-300/80 text-yellow-950; }
 
   .prose table {
-    @apply w-auto min-w-[50%] my-6 border-collapse border border-border text-sm rounded-lg overflow-hidden shadow-md; 
+    @apply w-auto min-w-[50%] my-6 border-collapse border border-border text-sm rounded-lg overflow-hidden shadow-md;
   }
   .dark .prose table { @apply border-border; }
 
-  .prose thead { @apply border-b-2 border-border bg-muted/40; } 
+  .prose thead { @apply border-b-2 border-border bg-muted/40; }
   .dark .prose thead { @apply border-border bg-muted/25; }
   .midnight-blue .prose thead { @apply bg-accent/40; }
   .sandstone .prose thead { @apply bg-accent/30; }
 
 
   .prose th {
-    @apply border border-border px-4 py-3 text-left font-semibold text-foreground; 
+    @apply border border-border px-4 py-3 text-left font-semibold text-foreground;
   }
   .dark .prose th { @apply text-foreground; }
   .midnight-blue .prose th { @apply text-foreground; }
   .sandstone .prose th { @apply text-foreground; }
 
   .prose tbody tr {
-    @apply border-b border-border transition-colors hover:bg-muted/30; 
+    @apply border-b border-border transition-colors hover:bg-muted/30;
   }
   .dark .prose tbody tr { @apply border-border hover:bg-muted/20; }
   .prose tbody tr:last-child { @apply border-b-0; }
@@ -364,12 +357,12 @@
   .sandstone .prose tbody tr:hover { @apply hover:bg-accent/20; }
 
   .prose td {
-    @apply border border-border px-4 py-3 text-left; 
+    @apply border border-border px-4 py-3 text-left;
   }
   .dark .prose td { @apply border-border; }
 
   .prose hr {
-    @apply my-10 border-t-2 border-border/70; 
+    @apply my-10 border-t-2 border-border/70;
   }
   .dark .prose hr, .midnight-blue .prose hr, .sandstone .prose hr {
     @apply border-border/70;
@@ -380,10 +373,10 @@
   .prose dd { @apply pl-6 mb-2 text-muted-foreground; }
   .midnight-blue .prose dd { @apply text-accent-foreground/70; }
   .sandstone .prose dd { @apply text-accent-foreground/80; }
-  .prose dd + dt { @apply mt-3; } 
+  .prose dd + dt { @apply mt-3; }
 
   .prose sub, .prose sup {
-    @apply text-[0.75em] align-baseline relative leading-none; 
+    @apply text-[0.75em] align-baseline relative leading-none;
   }
   .prose sub { @apply -bottom-[0.2em]; }
   .prose sup { @apply -top-[0.4em]; }
@@ -428,7 +421,7 @@
   .dark .ai-live-preview-block {
     @apply border-primary/40;
   }
-  
+
   .midnight-blue .ai-live-preview-block {
     @apply border-sky-500/50 bg-slate-800/30;
   }
@@ -504,7 +497,7 @@
 }
 .prose .live-math-inline-content,
 .prose .live-math-block-content {
-  color: hsl(var(--code-number)) !important; 
+  color: hsl(var(--code-number)) !important;
 }
 .prose .live-math-inline-delimiter,
 .prose .live-math-block-delimiter {

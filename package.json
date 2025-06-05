@@ -82,7 +82,6 @@
     "shiki": "^1.1.7",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
-    "tailwindcss": "^4.0.14",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",
     "vaul": "^0.9.9",
@@ -91,6 +90,7 @@
   },
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.13.12",
+    "@tailwindcss/postcss": "^4.0.14",
     "@tailwindcss/typography": "^0.5.16",
     "@types/katex": "^0.16.7",
     "@types/node": "^22.15.21",
