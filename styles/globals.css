@@ -19,14 +19,6 @@
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
-    --code-keyword: 280 60% 70%; /* Purple-ish, similar to #c678dd */
-    --code-string: 100 50% 50%; /* Green-ish, similar to #98c379 */
-    --code-comment: 215 10% 50%; /* Gray-ish, similar to #7f848e */
-    --code-number: 30 70% 60%; /* Orange-ish, similar to #d19a66 */
-    --code-boolean: 190 50% 60%; /* Cyan-ish, similar to #56b6c2 */
-    --code-tag: 0 70% 60%; /* Red-ish for HTML tags */
-    --code-attribute: 40 70% 60%; /* Yellow-ish for HTML attributes */
-    --search-highlight-bg: 48 96% 53.1%; /* Base color for highlight */
     --destructive-foreground: 210 40% 98%;
     --success: 142.1 76.2% 36.3%;
     --success-foreground: 355.7 100% 97.3%;
@@ -77,7 +69,6 @@
 }
 
 /* Line numbers for code blocks */
-/* These styles are now primarily for AI chat code blocks */
 .line-numbers {
   position: relative;
   padding-left: 2rem;
@@ -127,19 +118,3 @@
 .dark .search-highlight {
   background-color: hsla(48, 96%, 53.1%, 0.4); /* Consider theme variable */
 }
-
-/* REMOVED: Custom overrides for highlight.js using CSS variables */
-/* REMOVED: .hljs styles */
-/* REMOVED: .hljs-* styles */
-
-
-/* Scoped class for AI chat code blocks to ensure pre/code tags behave as expected */
-.ai-chat-code-block pre {
-  background-color: transparent; /* Ensure no conflicting background */
-  /* padding: 0; Remove padding, let code.hljs handle it - Adjusted this in sidebar.tsx now */
-  margin: 0; /* Remove margin */
-  /* overflow-x: visible; Let code tag handle overflow if needed */
-}
-
-/* REMOVED: The code tag will get padding from highlight.js default.css (pre code.hljs) */
-/* REMOVED: .ai-chat-code-block code.hljs { } */
