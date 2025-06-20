@@ -1,7 +1,5 @@
-// lib/utils.ts
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import React, { useState, useEffect } from "react" // Added for useIsMobile
 
 /**
  * Combines multiple class names and resolves Tailwind CSS conflicts
@@ -31,20 +29,14 @@ export function generateId(): string {
 /**
  * Debounces a function
  */
-export function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
-  let timeout: ReturnType<typeof setTimeout> | null = null;
+export function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null
 
-  const debounced = (...args: Parameters<F>) => {
-    if (timeout !== null) {
-      clearTimeout(timeout);
-      timeout = null;
-    }
-    timeout = setTimeout(() => func(...args), waitFor);
-  };
-
-  return debounced as (...args: Parameters<F>) => void; // Adjusted return type
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }
 }
-
 
 /**
  * Truncates a string to a specified length
@@ -52,30 +44,4 @@ export function debounce<F extends (...args: any[]) => any>(func: F, waitFor: nu
 export function truncate(str: string, length: number): string {
   if (str.length <= length) return str
   return str.slice(0, length) + "..."
-}
-
-/**
- * Hook to detect if the current device is mobile
- */
-const MOBILE_BREAKPOINT = 768
-
-export function useIsMobile() {
-  const [isMobile, setIsMobileState] = useState<boolean | undefined>(undefined) // Renamed to avoid conflict
-
-  useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobileState(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-
-    // Initial check
-    checkIfMobile()
-
-    // Add event listener
-    window.addEventListener("resize", checkIfMobile)
-
-    // Clean up
-    return () => window.removeEventListener("resize", checkIfMobile)
-  }, [])
-
-  return !!isMobile
 }
