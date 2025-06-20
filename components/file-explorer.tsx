@@ -1,217 +1,235 @@
-// components/file-explorer.tsx
 "use client"
+// components/file-explorer.tsx
+// THIS FILE IS NOW THE MAIN FILE EXPLORER AND SIDEBAR UI COMBINED
+// IF YOU MEANT TO EDIT THE SIDEBAR FOR AI CHAT, EDIT `sidebar.tsx` INSTEAD.
 
-import * as React from "react"
-import { useState, useMemo, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Folder as FolderIconMdi,
-  FolderOpen as FolderOpenIconMdi,
-  FolderCogOutline,
-  FolderZipOutline,
-  FolderMultipleOutline,
-  Npm as NpmIcon,
-  Git as GitIconMdi,
-  FileDocumentOutline,
-  LanguageJavascript,
-  LanguageTypescript,
-  LanguageHtml5,
-  LanguageCss3,
-  LanguageMarkdown,
-  CodeJson as JsonIcon,
-  PackageVariantClosed as PackageJsonIcon,
-  LockOutline as LockIconMdi,
-  FileImageOutline,
-  FileSettingsOutline,
-  CogOutline,
-  FolderMultipleOutline as FolderExplorerIconMdi, 
-  Magnify as SearchIconMdi,
-  Lock as LockTabIconMdi,
-} from "mdi-material-ui";
-
-import { ChevronRight, ChevronDown } from "lucide-react";
-
-import type { CodeFile, FileTreeItem } from "@/types/file"
-import { Tabs, TabsContent, TabsList, TabsTrigger, ScrollArea } from "@/components/ui" // Consolidated import
+  Folder, FileText as FileIcon, ChevronRight, ChevronDown, Plus, MoreHorizontal,
+  RefreshCcw, Search as SearchIcon, Settings2, Lock, Unlock, FolderGit2, FileCode2, FileJson, FileImage, FileArchive, FileTerminal, FileLock2, FileSearch, FolderOpen, FolderClosed, FolderPlus, FilePlus2, FileUp, Pencil, Trash2, Copy as CopyIcon, ExternalLink, Info
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { CodeFile, FileTreeItem } from "@/types/file";
+import { Button, ScrollArea, Tabs, TabsList, TabsTrigger, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger as TooltipTriggerPrimitive, Input, Checkbox, Label } from "@/components/ui"; // Consolidated imports
+import { FilesTabContent } from "./file-explorer-tabs/files-tab-content";
+import { SearchTabContent } from "./file-explorer-tabs/search-tab-content";
+import { LocksTabContent } from "./file-explorer-tabs/locks-tab-content";
+import { toast } from "sonner";
 
-import { FilesTabContent } from "./file-explorer-tabs/files-tab-content"
-import { SearchTabContent } from "./file-explorer-tabs/search-tab-content"
-import { LocksTabContent } from "./file-explorer-tabs/locks-tab-content"
-
-interface FileExplorerProps {
-  fileTree: FileTreeItem[];
-  activeFile: CodeFile | null;
-  onFileSelect: (file: FileTreeItem) => void;
-  rootDirectoryName: string;
-  onFileSystemUpdate: () => Promise<void>;
+interface FileTreeItem {
+  id: string
+  name: string
+  path: string
+  isDirectory?: boolean
+  children?: FileTreeItem[]
 }
 
-export default function FileExplorer({
-  fileTree,
-  activeFile,
-  onFileSelect,
-  rootDirectoryName,
-  onFileSystemUpdate,
-}: FileExplorerProps) {
-  const [activeExplorerTab, setActiveExplorerTab] = useState<"files" | "search" | "locks">("files")
-  const [isExplorerLocked, setIsExplorerLocked] = useState(false)
+interface FileExplorerProps {
+  files: CodeFile[]
+  activeFile: CodeFile | null
+  onFileSelect: (file: CodeFile) => void
+}
 
-  const initialExpandedDirs = useMemo(() => {
-    const defaultSet = new Set<string>();
-    if (fileTree.length > 0 && fileTree[0].name === rootDirectoryName) {
-      defaultSet.add(fileTree[0].path);
-      fileTree[0].children?.forEach(child => {
-        if (child.isDirectory && (child.name === 'src' || child.name === 'app' || child.name === 'components' || child.name === 'services')) {
-          defaultSet.add(child.path);
+export default function FileExplorer({ files, activeFile, onFileSelect }: FileExplorerProps) {
+  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(["src"]))
+  const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number } | null>(null)
+
+  // Convert flat files array to tree structure
+  const buildFileTree = (files: CodeFile[]): FileTreeItem[] => {
+    const root: FileTreeItem[] = []
+    const dirs: Record<string, FileTreeItem> = {}
+
+    // First pass: create all directories
+    files.forEach((file) => {
+      const pathParts = file.path.split("/")
+
+      // Create directories
+      let currentPath = ""
+      for (let i = 0; i < pathParts.length - 1; i++) {
+        const part = pathParts[i]
+        const parentPath = currentPath
+        currentPath = currentPath ? `${currentPath}/${part}` : part
+
+        if (!dirs[currentPath]) {
+          const dirItem: FileTreeItem = {
+            id: `dir-${currentPath}`,
+            name: part,
+            path: currentPath,
+            isDirectory: true,
+            children: [],
+          }
+
+          dirs[currentPath] = dirItem
+
+          if (parentPath) {
+            dirs[parentPath].children = dirs[parentPath].children || []
+            dirs[parentPath].children.push(dirItem)
+          } else {
+            root.push(dirItem)
+          }
         }
-      });
-    }
-    return defaultSet;
-  }, [fileTree, rootDirectoryName]);
-
-  const [expandedDirsForFilesTab, setExpandedDirsForFilesTab] = useState<Set<string>>(initialExpandedDirs);
-  const [globalSearchTerm, setGlobalSearchTerm] = useState("");
-
-  useEffect(() => {
-    setExpandedDirsForFilesTab(initialExpandedDirs);
-  }, [initialExpandedDirs]);
-
-  const getFileIcon = useCallback((fileName: string, itemPath?: string, isDirectory?: boolean, isActive?: boolean): React.ReactNode => {
-    const iconProps = { fontSize: "small" as const, className: "shrink-0" };
-    const defaultIconColor = isActive ? "text-slate-100" : "text-slate-400 dark:text-slate-500";
-    const folderColor = isActive ? "text-slate-100" : "text-slate-400 dark:text-slate-500";
-
-
-    if (isDirectory) {
-      const isExpanded = expandedDirsForFilesTab.has(itemPath || "");
-      const folderName = fileName.toLowerCase();
-
-      if (folderName === 'src' || folderName === 'app') return <FolderZipOutline {...iconProps} className={cn(iconProps.className, folderColor)} />;
-      if (folderName === 'components' || folderName === 'ui') return <FolderMultipleOutline {...iconProps} className={cn(iconProps.className, folderColor)} />;
-      if (folderName === 'node_modules') return <NpmIcon {...iconProps} className={cn(iconProps.className, folderColor)} />; 
-      if (folderName === '.git') return <GitIconMdi {...iconProps} className={cn(iconProps.className, folderColor)} />;
-      if (folderName === 'services' || folderName === 'lib' || folderName === 'utils' || folderName === 'hooks' || folderName === 'config') return <FolderCogOutline {...iconProps} className={cn(iconProps.className, folderColor)} />;
-      
-      return isExpanded ?
-        <FolderOpenIconMdi {...iconProps} className={cn(iconProps.className, folderColor)} /> :
-        <FolderIconMdi {...iconProps} className={cn(iconProps.className, folderColor)} />;
-    }
-
-    const lowerFileName = fileName.toLowerCase();
-    const extension = lowerFileName.split(".").pop();
-
-    if (lowerFileName === 'package.json') return <PackageJsonIcon {...iconProps} className={cn(iconProps.className, isActive ? "text-slate-100" : "text-green-500/80 dark:text-green-400/80")} />;
-    if (lowerFileName === 'package-lock.json') return <LockIconMdi {...iconProps} className={cn(iconProps.className, isActive ? "text-slate-100" : "text-orange-400/80 dark:text-orange-300/80")} />;
-    if (lowerFileName.startsWith('.env')) return <FileSettingsOutline {...iconProps} className={cn(iconProps.className, defaultIconColor)} />;
-    if (lowerFileName === 'vite.config.ts' || lowerFileName === 'tailwind.config.ts' || lowerFileName === 'next.config.mjs' || lowerFileName === 'postcss.config.mjs') return <CogOutline {...iconProps} className={cn(iconProps.className, defaultIconColor)} />;
-    if (lowerFileName === 'readme.md') return <LanguageMarkdown {...iconProps} className={cn(iconProps.className, defaultIconColor)} />;
-
-
-    switch (extension) {
-      case "js":
-      case "jsx":
-        return <LanguageJavascript {...iconProps} className={cn(iconProps.className, defaultIconColor)} />;
-      case "ts":
-      case "tsx":
-        return <LanguageTypescript {...iconProps} className={cn(iconProps.className, defaultIconColor)} />;
-      case "json":
-        return <JsonIcon {...iconProps} className={cn(iconProps.className, defaultIconColor)} />;
-      case "html":
-        return <LanguageHtml5 {...iconProps} className={cn(iconProps.className, defaultIconColor)} />;
-      case "css":
-      case "scss":
-      case "less":
-        return <LanguageCss3 {...iconProps} className={cn(iconProps.className, defaultIconColor)} />;
-      case "md":
-      case "mdx":
-        return <LanguageMarkdown {...iconProps} className={cn(iconProps.className, defaultIconColor)} />;
-      case "png":
-      case "jpg":
-      case "jpeg":
-      case "gif":
-      case "svg":
-      case "ico":
-      case "webp":
-        return <FileImageOutline {...iconProps} className={cn(iconProps.className, defaultIconColor)} />;
-      case "gitignore":
-        return <GitIconMdi {...iconProps} className={cn(iconProps.className, defaultIconColor, "opacity-70")} />;
-      default:
-        return <FileDocumentOutline {...iconProps} className={cn(iconProps.className, defaultIconColor)} />;
-    }
-  }, [expandedDirsForFilesTab]);
-
-  const handleExpandDirectoryInFilesTab = useCallback((dirPath: string) => {
-    setExpandedDirsForFilesTab(prev => {
-      const newSet = new Set(prev);
-      newSet.add(dirPath);
-      const parts = dirPath.split('/');
-      for (let i = 1; i < parts.length; i++) {
-        newSet.add(parts.slice(0, i).join('/'));
       }
-      return newSet;
-    });
-  }, []);
+    })
 
-  const filesTabFileTree = useMemo(() => {
-    return fileTree;
-  }, [fileTree]);
+    // Second pass: add files to directories
+    files.forEach((file) => {
+      const pathParts = file.path.split("/")
+      const fileName = pathParts[pathParts.length - 1]
+      const dirPath = pathParts.slice(0, -1).join("/")
+
+      const fileItem: FileTreeItem = {
+        id: file.id,
+        name: fileName,
+        path: file.path,
+        language: file.language, // Add language from CodeFile
+      };
+
+      if (dirPath && dirs[dirPath]) {
+        // Ensure children array exists if it's a directory item
+        if (!dirs[dirPath].children) {
+          dirs[dirPath].children = [];
+        }
+        dirs[dirPath].children!.push(fileItem); // Use non-null assertion if confident children is initialized
+      } else {
+        // File is in the root
+        root.push(fileItem);
+      }
+    });
+
+    return root;
+  };
+
+  const fileTree = buildFileTree(files);
+
+  const toggleDir = (path: string) => {
+    const newExpanded = new Set(expandedDirs)
+    if (newExpanded.has(path)) {
+      newExpanded.delete(path)
+    } else {
+      newExpanded.add(path)
+    }
+    setExpandedDirs(newExpanded)
+  }
+
+  const getFileIcon = (fileName: string) => {
+    const extension = fileName.split(".").pop()?.toLowerCase()
+
+    if (extension === "js" || extension === "jsx") {
+      return <FileCode2 className="h-4 w-4 text-yellow-400" />
+    } else if (extension === "ts" || extension === "tsx") {
+      return <FileCode2 className="h-4 w-4 text-blue-400" />
+    } else if (extension === "json") {
+      return <FileCode2 className="h-4 w-4 text-green-400" />
+    } else if (extension === "html") {
+      return <FileCode2 className="h-4 w-4 text-orange-400" />
+    } else if (extension === "css") {
+      return <FileCode2 className="h-4 w-4 text-purple-400" />
+    } else if (extension === "md") {
+      return <FileIcon className="h-4 w-4 text-gray-400" />
+    } else {
+      return <FileIcon className="h-4 w-4 text-gray-400" />
+    }
+  }
+
+  const handleAddFile = (directory?: string) => {
+    console.log("Add file to directory:", directory || "root")
+    // In a real implementation, this would open a dialog to create a new file
+    alert(`Adding a new file to ${directory || "root"} (simulated)`)
+  }
+
+  const handleAddFolder = (directory?: string) => {
+    console.log("Add folder to directory:", directory || "root")
+    // In a real implementation, this would open a dialog to create a new folder
+    alert(`Adding a new folder to ${directory || "root"} (simulated)`)
+  }
+
+  const renderFileTreeItem = (item: FileTreeItem) => {
+    const isExpanded = item.isDirectory && expandedDirs.has(item.path)
+    const isActive = !item.isDirectory && activeFile?.path === item.path
+
+    return (
+      <div key={item.id}>
+        <div
+          className={cn(
+            "flex items-center justify-between py-1 px-2 hover:bg-muted/40 cursor-pointer rounded-sm",
+            isActive && "bg-muted/60",
+          )}
+        >
+          <div
+            className="flex items-center space-x-2 flex-1"
+            onClick={() => {
+              if (item.isDirectory) {
+                toggleDir(item.path)
+              } else {
+                const file = files.find((f) => f.path === item.path)
+                if (file) onFileSelect(file)
+              }
+            }}
+          >
+            {item.isDirectory ? (
+              <>
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                )}
+                <Folder className="h-4 w-4 text-blue-500" />
+              </>
+            ) : (
+              <>
+                <span className="w-4" />
+                {getFileIcon(item.name)}
+              </>
+            )}
+            <span className="truncate text-sm">{item.name}</span>
+          </div>
+
+          {item.isDirectory && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:opacity-100"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleAddFile(item.path)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New File
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleAddFolder(item.path)}>
+                  <Folder className="h-4 w-4 mr-2" />
+                  New Folder
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+
+        {item.isDirectory && isExpanded && item.children && (
+          <div className="pl-4">{item.children.map((child) => renderFileTreeItem(child))}</div>
+        )}
+      </div>
+    )
+  }
 
   return (
-    <div className="flex flex-col h-full bg-[#21252B] text-slate-300">
-      <Tabs
-        value={activeExplorerTab}
-        onValueChange={(value) => setActiveExplorerTab(value as any)}
-        className="flex-1 flex flex-col overflow-hidden"
-      >
-        <TabsList className="grid w-full grid-cols-3 shrink-0 rounded-none border-b border-slate-700/50 bg-[#282C34] h-9">
-          <TabsTrigger value="files" className="data-[state=active]:bg-[#21252B] data-[state=active]:text-slate-100 text-slate-400 hover:text-slate-200 flex items-center gap-1.5 text-xs h-full">
-            <FolderExplorerIconMdi style={{ fontSize: '1.1rem' }} /> Files
-          </TabsTrigger>
-          <TabsTrigger value="search" className="data-[state=active]:bg-[#21252B] data-[state=active]:text-slate-100 text-slate-400 hover:text-slate-200 flex items-center gap-1.5 text-xs h-full">
-            <SearchIconMdi style={{ fontSize: '1.1rem' }} /> Search
-          </TabsTrigger>
-          <TabsTrigger value="locks" className="data-[state=active]:bg-[#21252B] data-[state=active]:text-slate-100 text-slate-400 hover:text-slate-200 flex items-center gap-1.5 text-xs h-full">
-            <LockTabIconMdi style={{ fontSize: '1.1rem' }} /> Locks
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="files" className="flex-1 overflow-y-auto mt-0">
-          <FilesTabContent
-            fileTree={filesTabFileTree}
-            activeFile={activeFile}
-            onFileSelect={onFileSelect}
-            getFileIcon={getFileIcon}
-            isExplorerLocked={isExplorerLocked}
-            expandedDirs={expandedDirsForFilesTab}
-            setExpandedDirs={setExpandedDirsForFilesTab}
-            rootDirectoryName={rootDirectoryName}
-            onFileSystemUpdate={onFileSystemUpdate}
-          />
-        </TabsContent>
-
-        <TabsContent value="search" className="flex-1 overflow-y-auto mt-0">
-          <SearchTabContent
-            fileTree={filesTabFileTree}
-            activeFile={activeFile}
-            onFileSelect={onFileSelect}
-            getFileIcon={getFileIcon}
-            onActivateFilesTab={() => setActiveExplorerTab("files")}
-            onExpandDirectoryInFilesTab={handleExpandDirectoryInFilesTab}
-            searchTerm={globalSearchTerm}
-            setSearchTerm={setGlobalSearchTerm}
-            rootDirectoryName={rootDirectoryName}
-          />
-        </TabsContent>
-
-        <TabsContent value="locks" className="flex-1 overflow-y-auto mt-0">
-          <LocksTabContent
-            fileTree={filesTabFileTree}
-            getFileIcon={getFileIcon}
-            isExplorerLocked={isExplorerLocked}
-            rootDirectoryName={rootDirectoryName}
-          />
-        </TabsContent>
-      </Tabs>
+    <div className="p-2">
+      <div className="mb-2 flex items-center justify-between px-2">
+        <span className="font-medium">Explorer</span>
+        <div className="flex space-x-1">
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleAddFile()} title="New File">
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleAddFolder()} title="New Folder">
+            <Folder className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      {fileTree.map((item) => renderFileTreeItem(item))}
     </div>
   )
 }

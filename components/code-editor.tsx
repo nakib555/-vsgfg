@@ -1,242 +1,150 @@
-// components/code-editor.tsx
+
 "use client"
 
-import React, { useEffect, useState, useRef } from "react"
-import Editor, { Monaco, loader, type OnMount } from "@monaco-editor/react"
-import type { editor as MonacoEditorTypes } from "monaco-editor"
+import { useEffect, useRef, useState, useCallback } from "react"
 import type { CodeFile } from "@/types/file"
-import { Button } from "@/components/ui" // Consolidated import
-import { Copy, Check, Save, Download, Settings2, Play } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { useTheme } from "next-themes"
-import { toast } from "sonner"
-
-export type EditorTheme =
-  | 'vs'
-  | 'vs-dark'
-  | 'hc-black'
-  | 'hc-light';
-
-export const editorThemesList: { name: string; value: EditorTheme }[] = [
-  { name: "VS Dark (Default)", value: "vs-dark" },
-  { name: "VS Light", value: "vs" },
-  { name: "High Contrast Dark", value: "hc-black" },
-  { name: "High Contrast Light", value: "hc-light" },
-];
+import { Button } from "@/components/ui/button"
+import { Copy, Check, Play, Save, Download } from "lucide-react"
+import { cn } from "@/lib/utils" // Ensure this is imported
+import { formatCodeWithLineNumbers } from "@/lib/html-utils" // Import the utility
 
 interface CodeEditorProps {
-  file: CodeFile | null
-  onContentChange?: (fileIdOrPath: string, newContent: string) => void
-  onRunCode?: (code: string, language: string) => void
-  editorTheme?: EditorTheme;
-  typingTarget?: { path: string; content: string; onComplete?: () => void } | null;
-  onTypingComplete?: (path: string) => void;
+  file: CodeFile
+  theme?: EditorTheme // Updated theme type
 }
 
-const AI_EDITOR_TYPING_SPEED = 10; 
+export type EditorTheme = 'vs' | 'vs-dark' | 'hc-black' | 'hc-light' | 'github-dark' | 'github-light' | 'monokai' | 'current-app-theme';
 
-export default function CodeEditor({
-  file,
-  onContentChange,
-  onRunCode,
-  editorTheme,
-  typingTarget,
-  onTypingComplete,
-}: CodeEditorProps) {
+export const editorThemesList: { name: string; value: EditorTheme }[] = [
+    { name: "Current App Theme", value: "current-app-theme" },
+    { name: "VS Dark (Default)", value: "vs-dark" },
+    { name: "VS Light", value: "vs" },
+    { name: "High Contrast Black", value: "hc-black" },
+    { name: "High Contrast Light", value: "hc-light" },
+    { name: "GitHub Dark", value: "github-dark" },
+    { name: "GitHub Light", value: "github-light" },
+    { name: "Monokai", value: "monokai" },
+];
+
+export default function CodeEditor({ file, theme = "current-app-theme" }: CodeEditorProps) {
+  const editorRef = useRef<HTMLPreElement>(null)
+  const [content, setContent] = useState(file.content)
+  const [isEditing, setIsEditing] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
-  const { theme: appTheme } = useTheme()
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const [currentEditorValue, setCurrentEditorValue] = useState(file?.content || "");
-  const editorRef = useRef<MonacoEditorTypes.IStandaloneCodeEditor | null>(null);
-  const monacoRef = useRef<Monaco | null>(null);
-  const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [isAiTyping, setIsAiTyping] = useState(false);
+  const editorThemeClass = cn(
+    "p-4 h-full overflow-auto font-mono text-sm",
+    theme === "dark"
+      ? "bg-background text-foreground"
+      : theme === "light"
+        ? "bg-background text-foreground"
+        : theme === "github-dark"
+          ? "bg-[#0d1117] text-[#c9d1d9]"
+          : theme === "github-light"
+            ? "bg-[#ffffff] text-[#24292f]"
+            : theme === "vscode-dark"
+              ? "bg-[#1e1e1e] text-[#d4d4d4]"
+              : theme === "monokai"
+                ? "bg-[#272822] text-[#f8f8f2]"
+                : "bg-[#1e1e1e] text-[#d4d4d4]", // Default to VSCode Dark
+  )
 
-  const currentMonacoThemeToApply = editorTheme || (appTheme === "dark" || appTheme === "system" ? "vs-dark" : "vs");
+  useEffect(() => {
+    setContent(file.content)
+  }, [file])
 
-  const handleEditorChange = (value: string | undefined) => {
-    if (isAiTyping) return;
+  useEffect(() => {
+    if (editorRef.current && !isEditing) {
+      editorRef.current.className = `line-numbers language-${file.language}`
+      let codeElement = editorRef.current.querySelector('code');
 
-    if (file && value !== undefined) {
-      onContentChange?.(file.path, value); 
-      setCurrentEditorValue(value);
+      if (!codeElement) { // If no code element, create one
+        codeElement = document.createElement('code');
+        editorRef.current.innerHTML = ''; // Clear pre
+        editorRef.current.appendChild(codeElement);
+      }
+
+      // Use the utility function to format and highlight
+      codeElement.innerHTML = formatCodeWithLineNumbers(content, file.language);
     }
-  }
+  }, [content, file.language, isEditing])
 
   const handleCopyCode = () => {
-    if (currentEditorValue) {
-      navigator.clipboard.writeText(currentEditorValue)
-      setIsCopied(true)
-      toast.success("Code copied to clipboard!")
-      setTimeout(() => setIsCopied(false), 2000)
-    }
+    navigator.clipboard.writeText(content)
+    setIsCopied(true)
+    setTimeout(() => setIsCopied(false), 2000)
   }
 
-  const handleRunCodeInternal = () => {
-    if (currentEditorValue && file && onRunCode) {
-      onRunCode(currentEditorValue, file.language)
-      toast.info(`Running ${file.name}... Preview tab updated.`)
-    } else if (file) {
-      console.log("Running code (simulated):", currentEditorValue)
-      toast.info("Code execution simulated. Check console.")
-    }
+  const handleRunCode = () => {
+    console.log("Running code:", content)
+    alert("Code execution is simulated. Check the console for details.")
   }
 
   const handleSaveCode = () => {
-    if (file) {
-      console.log("Saving code (simulated for file):", file.name, currentEditorValue)
-      toast.success(`${file.name} saved (simulated)`)
-      if (onContentChange) onContentChange(file.path, currentEditorValue); 
-    }
+    console.log("Saving code:", content)
+    alert("Code saved successfully (simulated)")
   }
 
   const handleDownloadCode = () => {
-    if (file && currentEditorValue) {
-      const blob = new Blob([currentEditorValue], { type: "text/plain" })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = file.name
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      toast.success(`Downloading ${file.name}`)
-    }
+    const blob = new Blob([content], { type: "text/plain" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = file.name
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
-  const handleEditorDidMount: OnMount = (instance, monacoInstance) => {
-    editorRef.current = instance;
-    monacoRef.current = monacoInstance;
-    monacoInstance.editor.setTheme(currentMonacoThemeToApply);
-  }
-
-  useEffect(() => {
-    loader.init().then((monaco) => {
-      monacoRef.current = monaco;
-      monaco.editor.setTheme(currentMonacoThemeToApply);
-    }).catch(error => console.error("Monaco loader.init error in theme useEffect:", error));
-  }, [currentMonacoThemeToApply]);
-
-
-  useEffect(() => {
-    if (typingTarget && editorRef.current && file && file.path === typingTarget.path) {
-      setIsAiTyping(true);
-      if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
-      
-      let charIndex = 0;
-      const targetContent = typingTarget.content;
-      editorRef.current.setValue(""); 
-      setCurrentEditorValue(""); 
-
-      typingIntervalRef.current = setInterval(() => {
-        if (charIndex < targetContent.length) {
-          const currentTypedValue = targetContent.substring(0, charIndex + 1);
-          editorRef.current?.setValue(currentTypedValue); 
-          editorRef.current?.revealPosition({lineNumber: editorRef.current.getModel()?.getLineCount() || 1, column: 1}); 
-
-          setCurrentEditorValue(currentTypedValue);
-          if (onContentChange) onContentChange(file.path, currentTypedValue); 
-
-          charIndex++;
-        } else {
-          if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
-          typingIntervalRef.current = null;
-          setIsAiTyping(false);
-          if (typingTarget.onComplete) typingTarget.onComplete();
-          if (onTypingComplete) onTypingComplete(typingTarget.path);
-        }
-      }, AI_EDITOR_TYPING_SPEED);
-
-    } else if (!typingTarget && file) { 
-        if (typingIntervalRef.current) { 
-            clearInterval(typingIntervalRef.current);
-            typingIntervalRef.current = null;
-            setIsAiTyping(false);
-        }
-        setCurrentEditorValue(file.content);
-        if (editorRef.current) {
-            const currentModel = editorRef.current.getModel();
-            if (!currentModel || currentModel.uri.toString() !== file.path || editorRef.current.getValue() !== file.content) {
-                 editorRef.current.setValue(file.content);
-            }
-        }
-    } else if (!file && !typingTarget) { 
-        if (typingIntervalRef.current) {
-            clearInterval(typingIntervalRef.current);
-            typingIntervalRef.current = null;
-            setIsAiTyping(false);
-        }
-        setCurrentEditorValue("");
-        if (editorRef.current) editorRef.current.setValue("");
-    }
-
-    return () => {
-      if (typingIntervalRef.current) {
-        clearInterval(typingIntervalRef.current);
-        setIsAiTyping(false);
+  const toggleEditMode = () => {
+    setIsEditing((prev) => {
+      if (!prev && textareaRef.current) { // Entering edit mode
+        setTimeout(() => {
+          textareaRef.current?.focus()
+        }, 0)
       }
-    };
-  }, [file, typingTarget, onTypingComplete, onContentChange]);
-
-
-  if (!file && !typingTarget) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center text-muted-foreground bg-background p-4">
-        <Settings2 className="h-16 w-16 mb-4 opacity-30" />
-        <p>Select a file to start editing or create a new one.</p>
-      </div>
-    )
+      return !prev;
+    });
   }
-
-  const displayLanguage = file?.language || (typingTarget ? (typingTarget.path.split('.').pop() || 'plaintext') : 'plaintext');
-
 
   return (
-    <div className="h-full flex flex-col bg-background">
-      <div className="flex items-center justify-end p-1.5 border-b border-border bg-muted shrink-0 space-x-1">
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={handleRunCodeInternal} title="Run code / Update Preview" disabled={!file || isAiTyping}>
-          <Play className="h-3.5 w-3.5" />
-        </Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={handleCopyCode} title="Copy code" disabled={!currentEditorValue || isAiTyping}>
-          {isCopied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-        </Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={handleSaveCode} title="Save code" disabled={!file || isAiTyping}>
-          <Save className="h-3.5 w-3.5" />
-        </Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={handleDownloadCode} title="Download code" disabled={!file || !currentEditorValue || isAiTyping}>
-          <Download className="h-3.5 w-3.5" />
-        </Button>
+    <div className="h-full flex flex-col">
+      <div className="flex items-center justify-between p-2 border-b border-border bg-muted/30">
+        <div className="text-sm font-medium truncate" title={file.name}>{file.name}</div>
+        <div className="flex space-x-1 shrink-0">
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCopyCode} title="Copy code">
+            {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          </Button>
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleRunCode} title="Run code">
+            <Play className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleSaveCode} title="Save code">
+            <Save className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleDownloadCode} title="Download code">
+            <Download className="h-4 w-4" />
+          </Button>
+          <Button variant={isEditing ? "default" : "outline"} size="sm" onClick={toggleEditMode} className="ml-2">
+            {isEditing ? "View" : "Edit"}
+          </Button>
+        </div>
       </div>
-      <div className="flex-1 overflow-hidden">
-        <Editor
-          key={`${file?.path || typingTarget?.path}-${currentMonacoThemeToApply}`} 
-          height="100%"
-          path={file?.path || typingTarget?.path} 
-          language={displayLanguage}
-          value={currentEditorValue}
-          theme={currentMonacoThemeToApply}
-          onChange={handleEditorChange}
-          onMount={handleEditorDidMount}
-          options={{
-            minimap: { enabled: true, side: 'right' },
-            fontSize: 13,
-            wordWrap: "on",
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            renderLineHighlight: "gutter",
-            scrollbar: {
-              verticalScrollbarSize: 8,
-              horizontalScrollbarSize: 8,
-            },
-            glyphMargin: false,
-            folding: true,
-            lineDecorationsWidth: 5,
-            lineNumbersMinChars: 3,
-            padding: { top: 8, bottom: 8 },
-            readOnly: isAiTyping,
-          }}
-        />
+      <div className={cn(editorThemeClass, "flex-1")}> {/* Added flex-1 to make it take remaining space */}
+        {isEditing ? (
+          <textarea
+            ref={textareaRef}
+            value={content} // Use content state
+            onChange={(e) => setContent(e.target.value)}
+            className="w-full h-full bg-transparent border-none outline-none font-mono resize-none p-0 m-0 leading-relaxed text-current" // Ensure no extra padding/margin and inherits text color
+            spellCheck="false"
+          />
+        ) : (
+          <pre ref={editorRef} className={`line-numbers language-${file.language}`}>
+            <code>{/* Content injected by useEffect */}</code>
+          </pre>
+        )}
       </div>
     </div>
   )
