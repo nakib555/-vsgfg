@@ -44,7 +44,7 @@ interface SettingsTabProps {
 
 export const SettingsTab: React.FC<SettingsTabProps> = (props) => {
   return (
-    <TabsContent value="settings" className="mt-0 px-3 pb-3 space-y-6 overflow-y-auto">
+    <TabsContent value="settings" className="mt-0 px-3 pb-3 space-y-3 overflow-y-auto">
       <SettingsInterface {...props} />
     </TabsContent>
   );
