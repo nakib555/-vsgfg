@@ -1,4 +1,3 @@
-// tailwind.config.ts
 import type { Config } from "tailwindcss"
 
 const config: Config = {
@@ -21,46 +20,46 @@ const config: Config = {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border-h) var(--border-s) var(--border-l) / <alpha-value>)",
-        input: "hsl(var(--input-h) var(--input-s) var(--input-l) / <alpha-value>)",
-        ring: "hsl(var(--ring-h) var(--ring-s) var(--ring-l) / <alpha-value>)",
-        background: "hsl(var(--background-h) var(--background-s) var(--background-l) / <alpha-value>)", // Updated to use HSL components
-        foreground: "hsl(var(--foreground-h) var(--foreground-s) var(--foreground-l) / <alpha-value>)",
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "hsl(var(--primary-h) var(--primary-s) var(--primary-l) / <alpha-value>)",
-          foreground: "hsl(var(--primary-foreground-h) var(--primary-foreground-s) var(--primary-foreground-l) / <alpha-value>)",
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary-h) var(--secondary-s) var(--secondary-l) / <alpha-value>)",
-          foreground: "hsl(var(--secondary-foreground-h) var(--secondary-foreground-s) var(--secondary-foreground-l) / <alpha-value>)",
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive-h) var(--destructive-s) var(--destructive-l) / <alpha-value>)",
-          foreground: "hsl(var(--destructive-foreground-h) var(--destructive-foreground-s) var(--destructive-foreground-l) / <alpha-value>)",
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted-h) var(--muted-s) var(--muted-l) / <alpha-value>)",
-          foreground: "hsl(var(--muted-foreground-h) var(--muted-foreground-s) var(--muted-foreground-l) / <alpha-value>)",
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent-h) var(--accent-s) var(--accent-l) / <alpha-value>)",
-          foreground: "hsl(var(--accent-foreground-h) var(--accent-foreground-s) var(--accent-foreground-l) / <alpha-value>)",
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
         },
         popover: {
-          DEFAULT: "hsl(var(--popover-h) var(--popover-s) var(--popover-l) / <alpha-value>)",
-          foreground: "hsl(var(--popover-foreground-h) var(--popover-foreground-s) var(--popover-foreground-l) / <alpha-value>)",
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
         },
         card: {
-          DEFAULT: "hsl(var(--card-h) var(--card-s) var(--card-l) / <alpha-value>)",
-          foreground: "hsl(var(--card-foreground-h) var(--card-foreground-s) var(--card-foreground-l) / <alpha-value>)",
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
         },
         success: {
-          DEFAULT: "hsl(var(--success-h) var(--success-s) var(--success-l) / <alpha-value>)",
-          foreground: "hsl(var(--success-foreground-h) var(--success-foreground-s) var(--success-foreground-l) / <alpha-value>)",
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
         },
         warning: {
-          DEFAULT: "hsl(var(--warning-h) var(--warning-s) var(--warning-l) / <alpha-value>)",
-          foreground: "hsl(var(--warning-foreground-h) var(--warning-foreground-s) var(--warning-foreground-l) / <alpha-value>)",
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
         },
       },
       borderRadius: {
@@ -81,22 +80,14 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        blink: {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "blink": "blink 1s step-start infinite",
       },
     },
   },
-  plugins: [
-    require("@tailwindcss/typography"),
-    require("tailwindcss-animate")
-  ],
+  plugins: [require("tailwindcss-animate")],
 }
 
 export default config

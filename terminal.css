@@ -1,0 +1,181 @@
+/* --- File: styles/terminal.css --- */
+/* PowerShell Terminal Styling */
+
+.terminal-content {
+  font-family: 'Cascadia Code', 'Consolas', 'Menlo', 'Courier New', monospace; /* Added more fallbacks */
+  line-height: 1.6; /* Increased for better readability */
+  padding: 8px;
+}
+
+/* PowerShell prompt styling */
+.ps-prompt {
+  color: hsl(var(--muted-foreground)); /* Use theme variable */
+  user-select: none;
+  display: inline-flex; /* Helps align multiline prompts if they occur */
+  align-items: baseline; /* Align text within the prompt */
+}
+
+.ps-prompt-path {
+  color: hsl(var(--primary)); /* Use theme variable */
+  font-weight: 500;
+}
+
+.ps-prompt-drive {
+  color: hsl(var(--accent-foreground)); /* Use theme variable */
+}
+
+/* Output styling */
+.ps-output {
+  color: hsl(var(--foreground)); /* Use theme variable */
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Command styling */
+.ps-command {
+  color: hsl(var(--foreground)); /* Use theme variable */
+  font-weight: 500;
+}
+
+/* Error styling */
+.ps-error-output { /* For the whole block of error output */
+  color: hsl(var(--destructive)); 
+  /* background-color: hsl(var(--destructive) / 0.05); /* Optional: Lighter background */
+}
+.ps-error { /* For inline error keywords */
+  color: hsl(var(--destructive)); 
+  font-weight: bold;
+}
+
+
+/* Warning styling */
+.ps-warning {
+  color: hsl(var(--warning)); /* Use theme variable */
+  /* background-color: hsl(var(--warning) / 0.1);
+  padding: 4px 8px;
+  border-left: 2px solid hsl(var(--warning));
+  margin: 4px 0; */
+}
+
+/* Success styling */
+.ps-success {
+  color: hsl(var(--success)); /* Use theme variable */
+}
+
+/* Info styling */
+.ps-info {
+  color: hsl(217.2, 91.2%, 59.8%); /* Consider theme variable */
+}
+
+/* File path styling */
+.ps-path {
+  color: hsl(var(--code-string)); /* Use code string color for paths */
+}
+
+/* Command completion styling */
+.ps-completion {
+  color: hsl(var(--accent-foreground)); /* Use theme variable */
+  font-style: italic;
+}
+
+/* Tab completion styling */
+.ps-completion-list {
+  background-color: hsl(var(--popover)); /* Use theme variable */
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  color: hsl(var(--popover-foreground));
+}
+
+.ps-completion-item {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.ps-completion-item:hover {
+  background-color: hsl(var(--accent));
+}
+
+/* Update scrollbar styling for completion list */
+.ps-completion-list::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.ps-completion-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ps-completion-list::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+
+.ps-completion-list::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Progress bar styling */
+.ps-progress {
+  /* background-color: hsl(var(--secondary));
+  border: 1px solid hsl(var(--border));
+  height: 20px;
+  margin: 4px 0;
+  position: relative; */
+  color: hsl(var(--accent-foreground)); /* For text-based progress */
+}
+
+/* Selection styling */
+.terminal-content ::selection {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+/* Syntax highlighting - these are more specific than the general .ps-command etc. */
+.ps-string { color: hsl(var(--code-string)); }
+.ps-number { color: hsl(var(--code-number)); }
+.ps-boolean { color: hsl(var(--code-boolean)); }
+.ps-variable { color: #9CDCFE; } /* Specific to PS variables, might differ from general code */
+.ps-operator { color: hsl(var(--foreground)); opacity: 0.8; } /* General operators, slightly muted */
+.ps-keyword { color: hsl(var(--code-keyword)); }
+.ps-comment { color: hsl(var(--code-comment)); font-style: italic; }
+.ps-function { color: #DCDCAA; } /* Specific to PS functions */
+
+/* PowerShell specific command types */
+.ps-cmdlet { color: #4EC9B0; } /* Specific to PS cmdlets */
+.ps-parameter { color: #9CDCFE; } /* Parameters often match variable colors */
+.ps-alias { color: #DCDCAA; font-style: italic; }
+.ps-type { color: #4EC9B0; } /* Types often match cmdlet colors or a distinct color */
+
+
+/* Cursor styling */
+.ps-cursor {
+  background-color: hsl(var(--foreground));
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* Scrollbar styling */
+.terminal-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.terminal-content::-webkit-scrollbar-track {
+  background: hsl(var(--background)); /* Match terminal background */
+}
+
+.terminal-content::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+
+.terminal-content::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
