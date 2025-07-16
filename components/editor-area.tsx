@@ -4,9 +4,10 @@ import { useState } from "react"
 import { Resizable } from "@/components/resizable"
 import FileExplorer from "@/components/file-explorer"
 import CodeEditor from "@/components/code-editor"
+import SearchPanel from "@/components/search-panel"
 import { Button } from "@/components/ui/button"
 import type { CodeFile } from "@/types/file"
-import { Code2, FileSymlink, Eye, TerminalIcon, X } from "lucide-react"
+import { Code2, FileSymlink, Eye, TerminalIcon, X, FolderTree, Search } from "lucide-react"
 
 interface EditorAreaProps {
   files: CodeFile[]
@@ -17,6 +18,7 @@ interface EditorAreaProps {
 
 export default function EditorArea({ files, activeFile, setActiveFile, toggleTerminal }: EditorAreaProps) {
   const [activeTab, setActiveTab] = useState<"code" | "diff" | "preview">("code")
+  const [activeSidebarTab, setActiveSidebarTab] = useState<"explorer" | "search">("explorer")
   const [editorTheme, setEditorTheme] = useState("dark")
 
   return (
@@ -64,9 +66,44 @@ export default function EditorArea({ files, activeFile, setActiveFile, toggleTer
       <div className="flex-1 flex overflow-hidden">
         {activeTab === "code" && (
           <>
-            <Resizable direction="horizontal" defaultSize={250} minSize={200} maxSize={400}>
-              <div className="w-[250px] min-w-[200px] border-r border-border overflow-y-auto">
-                <FileExplorer files={files} activeFile={activeFile} onFileSelect={setActiveFile} />
+            <Resizable 
+              direction="horizontal" 
+              initialSize={300} 
+              minSize={200} 
+              maxSize={500}
+              resizerSide="right"
+              className="border-r border-border flex flex-col"
+            >
+              {/* Sidebar Tabs */}
+              <div className="h-10 border-b border-border flex items-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-full px-3 rounded-none flex-1 ${activeSidebarTab === "explorer" ? "bg-muted" : ""}`}
+                  onClick={() => setActiveSidebarTab("explorer")}
+                >
+                  <FolderTree className="h-4 w-4 mr-1" />
+                  Explorer
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-full px-3 rounded-none flex-1 ${activeSidebarTab === "search" ? "bg-muted" : ""}`}
+                  onClick={() => setActiveSidebarTab("search")}
+                >
+                  <Search className="h-4 w-4 mr-1" />
+                  Search
+                </Button>
+              </div>
+
+              {/* Sidebar Content */}
+              <div className="flex-1 overflow-hidden">
+                {activeSidebarTab === "explorer" && (
+                  <FileExplorer files={files} activeFile={activeFile} onFileSelect={setActiveFile} />
+                )}
+                {activeSidebarTab === "search" && (
+                  <SearchPanel files={files} onFileSelect={setActiveFile} />
+                )}
               </div>
             </Resizable>
 
