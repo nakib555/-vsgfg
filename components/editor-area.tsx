@@ -5,9 +5,10 @@ import { Resizable } from "@/components/resizable"
 import FileExplorer from "@/components/file-explorer"
 import CodeEditor from "@/components/code-editor"
 import SearchPanel from "@/components/search-panel"
+import PreviewPanel from "@/components/preview-panel"
 import { Button } from "@/components/ui/button"
 import type { CodeFile } from "@/types/file"
-import { Code2, FileSymlink, Eye, TerminalIcon, X, FolderTree, Search } from "lucide-react"
+import { Code2, FileSymlink, Eye, TerminalIcon, X, FolderTree, Search, RefreshCw, ExternalLink, Copy, Maximize2 } from "lucide-react"
 
 interface EditorAreaProps {
   files: CodeFile[]
@@ -21,36 +22,69 @@ export default function EditorArea({ files, activeFile, setActiveFile, toggleTer
   const [activeSidebarTab, setActiveSidebarTab] = useState<"explorer" | "search">("explorer")
   const [editorTheme, setEditorTheme] = useState("dark")
 
+  const handleRefresh = () => {
+    // Refresh preview
+    console.log("Refreshing preview...")
+  }
+
+  const handleOpenExternal = () => {
+    // Open in new tab/window
+    console.log("Opening in external window...")
+  }
+
+  const handleCopyUrl = () => {
+    // Copy preview URL
+    navigator.clipboard.writeText("http://localhost:3000")
+    console.log("URL copied to clipboard")
+  }
+
+  const handleMaximize = () => {
+    // Maximize preview
+    console.log("Maximizing preview...")
+  }
+
   return (
     <div className="flex flex-col h-full">
-      {/* Editor Tabs */}
-      <div className="h-10 border-b border-border flex items-center justify-between px-2">
+      {/* Main Editor Tabs */}
+      <div className="h-10 border-b border-border flex items-center justify-between px-2 bg-background">
         <div className="flex items-center h-full">
           <Button
             variant="ghost"
             size="sm"
-            className={`h-full px-3 rounded-none ${activeTab === "code" ? "border-b-2 border-primary" : ""}`}
+            className={`h-full px-4 rounded-none border-b-2 transition-colors ${
+              activeTab === "code" 
+                ? "border-blue-500 text-blue-500 bg-muted/30" 
+                : "border-transparent hover:bg-muted/40"
+            }`}
             onClick={() => setActiveTab("code")}
           >
-            <Code2 className="h-4 w-4 mr-1" />
+            <Code2 className="h-4 w-4 mr-2" />
             Code
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className={`h-full px-3 rounded-none ${activeTab === "diff" ? "border-b-2 border-primary" : ""}`}
+            className={`h-full px-4 rounded-none border-b-2 transition-colors ${
+              activeTab === "diff" 
+                ? "border-blue-500 text-blue-500 bg-muted/30" 
+                : "border-transparent hover:bg-muted/40"
+            }`}
             onClick={() => setActiveTab("diff")}
           >
-            <FileSymlink className="h-4 w-4 mr-1" />
+            <FileSymlink className="h-4 w-4 mr-2" />
             Diff
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className={`h-full px-3 rounded-none ${activeTab === "preview" ? "border-b-2 border-primary" : ""}`}
+            className={`h-full px-4 rounded-none border-b-2 transition-colors ${
+              activeTab === "preview" 
+                ? "border-blue-500 text-blue-500 bg-muted/30" 
+                : "border-transparent hover:bg-muted/40"
+            }`}
             onClick={() => setActiveTab("preview")}
           >
-            <Eye className="h-4 w-4 mr-1" />
+            <Eye className="h-4 w-4 mr-2" />
             Preview
           </Button>
         </div>
@@ -136,13 +170,46 @@ export default function EditorArea({ files, activeFile, setActiveFile, toggleTer
 
         {activeTab === "diff" && (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-            Diff view would be implemented here
+            <div className="text-center">
+              <FileSymlink className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium mb-2">Diff View</p>
+              <p className="text-sm">Compare changes between file versions</p>
+            </div>
           </div>
         )}
 
         {activeTab === "preview" && (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-            Preview would be implemented here
+          <div className="w-full h-full flex flex-col">
+            {/* Preview Header */}
+            <div className="h-12 border-b border-border flex items-center justify-between px-4 bg-muted/20">
+              <div className="flex items-center space-x-2">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleRefresh}>
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+                <div className="flex items-center space-x-2 px-3 py-1 bg-background border rounded-md">
+                  <span className="text-sm text-muted-foreground">🔒</span>
+                  <span className="text-sm font-mono">localhost:3000</span>
+                  <span className="text-sm text-muted-foreground">/</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCopyUrl}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleOpenExternal}>
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleMaximize}>
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Preview Content */}
+            <div className="flex-1 bg-background">
+              <PreviewPanel activeFile={activeFile} />
+            </div>
           </div>
         )}
       </div>
