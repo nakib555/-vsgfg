@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react"
 import type { CodeFile } from "@/types/file"
 import { Button } from "@/components/ui/button"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { Globe, Smartphone, Tablet, Monitor, RotateCcw } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface PreviewPanelProps {
   activeFile: CodeFile | null
@@ -13,6 +15,14 @@ export default function PreviewPanel({ activeFile }: PreviewPanelProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [viewportSize, setViewportSize] = useState<"desktop" | "tablet" | "mobile">("desktop")
   const [isLoading, setIsLoading] = useState(false)
+  const isMobile = useIsMobile()
+
+  // Auto-adjust viewport for mobile devices
+  useEffect(() => {
+    if (isMobile && viewportSize === "desktop") {
+      setViewportSize("mobile")
+    }
+  }, [isMobile, viewportSize])
 
   const getPreviewContent = () => {
     if (!activeFile) {
@@ -27,7 +37,7 @@ export default function PreviewPanel({ activeFile }: PreviewPanelProps) {
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
               margin: 0;
-              padding: 40px;
+              padding: 20px;
               background: #f8fafc;
               color: #334155;
               display: flex;
@@ -37,24 +47,43 @@ export default function PreviewPanel({ activeFile }: PreviewPanelProps) {
             }
             .container {
               text-align: center;
-              max-width: 500px;
+              max-width: 90%;
+              padding: 20px;
             }
             .icon {
-              width: 64px;
-              height: 64px;
-              margin: 0 auto 24px;
+              width: 48px;
+              height: 48px;
+              margin: 0 auto 16px;
               opacity: 0.5;
             }
+            @media (min-width: 640px) {
+              .icon {
+                width: 64px;
+                height: 64px;
+                margin-bottom: 24px;
+              }
+            }
             h1 {
-              font-size: 24px;
+              font-size: 20px;
               font-weight: 600;
-              margin-bottom: 12px;
+              margin-bottom: 8px;
               color: #1e293b;
             }
+            @media (min-width: 640px) {
+              h1 {
+                font-size: 24px;
+                margin-bottom: 12px;
+              }
+            }
             p {
-              font-size: 16px;
+              font-size: 14px;
               line-height: 1.6;
               opacity: 0.8;
+            }
+            @media (min-width: 640px) {
+              p {
+                font-size: 16px;
+              }
             }
           </style>
         </head>
@@ -75,7 +104,15 @@ export default function PreviewPanel({ activeFile }: PreviewPanelProps) {
     }
 
     if (activeFile.language === "html") {
-      return activeFile.content
+      // Add responsive meta tag if not present
+      let content = activeFile.content
+      if (!content.includes('viewport')) {
+        content = content.replace(
+          '<head>',
+          '<head>\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">'
+        )
+      }
+      return content
     }
 
     if (activeFile.language === "javascript" || activeFile.language === "typescript") {
@@ -90,24 +127,46 @@ export default function PreviewPanel({ activeFile }: PreviewPanelProps) {
             body {
               font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
               margin: 0;
-              padding: 20px;
+              padding: 12px;
               background: #1e1e1e;
               color: #d4d4d4;
+              font-size: 12px;
+            }
+            @media (min-width: 640px) {
+              body {
+                padding: 20px;
+                font-size: 14px;
+              }
             }
             .console {
               background: #252526;
               border: 1px solid #3e3e42;
               border-radius: 4px;
-              padding: 16px;
-              font-size: 14px;
+              padding: 12px;
               line-height: 1.5;
             }
+            @media (min-width: 640px) {
+              .console {
+                padding: 16px;
+              }
+            }
             .output {
-              margin-top: 16px;
-              padding: 12px;
+              margin-top: 12px;
+              padding: 8px;
               background: #0d1117;
               border-radius: 4px;
               border-left: 3px solid #58a6ff;
+            }
+            @media (min-width: 640px) {
+              .output {
+                margin-top: 16px;
+                padding: 12px;
+              }
+            }
+            pre {
+              white-space: pre-wrap;
+              word-break: break-word;
+              margin: 0;
             }
           </style>
         </head>
@@ -156,38 +215,94 @@ export default function PreviewPanel({ activeFile }: PreviewPanelProps) {
           body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 12px;
             background: #f8fafc;
             color: #334155;
           }
+          @media (min-width: 640px) {
+            body {
+              padding: 20px;
+            }
+          }
           .container {
-            max-width: 800px;
+            max-width: 100%;
             margin: 0 auto;
             background: white;
             border-radius: 8px;
-            padding: 24px;
+            padding: 16px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          }
+          @media (min-width: 640px) {
+            .container {
+              max-width: 800px;
+              padding: 24px;
+            }
           }
           .file-info {
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 16px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
             border-bottom: 1px solid #e2e8f0;
           }
+          @media (min-width: 640px) {
+            .file-info {
+              margin-bottom: 20px;
+              padding-bottom: 16px;
+            }
+          }
           .file-icon {
-            width: 24px;
-            height: 24px;
-            margin-right: 12px;
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
             opacity: 0.6;
+            flex-shrink: 0;
+          }
+          @media (min-width: 640px) {
+            .file-icon {
+              width: 24px;
+              height: 24px;
+              margin-right: 12px;
+            }
+          }
+          h2 {
+            margin: 0;
+            font-size: 16px;
+            word-break: break-word;
+          }
+          @media (min-width: 640px) {
+            h2 {
+              font-size: 18px;
+            }
+          }
+          .file-type {
+            margin: 2px 0 0;
+            font-size: 12px;
+            opacity: 0.7;
+          }
+          @media (min-width: 640px) {
+            .file-type {
+              margin: 4px 0 0;
+              font-size: 14px;
+            }
           }
           pre {
             background: #f1f5f9;
-            padding: 16px;
+            padding: 12px;
             border-radius: 6px;
             overflow-x: auto;
-            font-size: 14px;
+            font-size: 12px;
             line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+          }
+          @media (min-width: 640px) {
+            pre {
+              padding: 16px;
+              font-size: 14px;
+              white-space: pre;
+              word-break: normal;
+            }
           }
           code {
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
@@ -205,8 +320,8 @@ export default function PreviewPanel({ activeFile }: PreviewPanelProps) {
               <polyline points="10,9 9,9 8,9"/>
             </svg>
             <div>
-              <h2 style="margin: 0; font-size: 18px;">${activeFile.name}</h2>
-              <p style="margin: 4px 0 0; font-size: 14px; opacity: 0.7;">${activeFile.language} file</p>
+              <h2>${activeFile.name}</h2>
+              <p class="file-type">${activeFile.language} file</p>
             </div>
           </div>
           <pre><code>${activeFile.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>
@@ -237,9 +352,15 @@ export default function PreviewPanel({ activeFile }: PreviewPanelProps) {
   const getViewportStyles = () => {
     switch (viewportSize) {
       case "mobile":
-        return { width: "375px", height: "667px" }
+        return { 
+          width: isMobile ? "100%" : "375px", 
+          height: isMobile ? "100%" : "667px" 
+        }
       case "tablet":
-        return { width: "768px", height: "1024px" }
+        return { 
+          width: isMobile ? "100%" : "768px", 
+          height: isMobile ? "100%" : "1024px" 
+        }
       default:
         return { width: "100%", height: "100%" }
     }
@@ -247,56 +368,63 @@ export default function PreviewPanel({ activeFile }: PreviewPanelProps) {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Viewport Controls */}
-      <div className="h-10 border-b border-border flex items-center justify-between px-4 bg-muted/10">
+      {/* Viewport Controls - Responsive */}
+      <div className="h-8 sm:h-10 border-b border-border flex items-center justify-between px-2 sm:px-4 bg-muted/10">
         <div className="flex items-center space-x-1">
           <Button
             variant={viewportSize === "desktop" ? "default" : "ghost"}
             size="sm"
             onClick={() => setViewportSize("desktop")}
-            className="h-7"
+            className="h-6 sm:h-7 px-2 sm:px-3 text-xs"
           >
             <Monitor className="h-3 w-3 mr-1" />
-            Desktop
+            <span className="hidden xs:inline">Desktop</span>
           </Button>
           <Button
             variant={viewportSize === "tablet" ? "default" : "ghost"}
             size="sm"
             onClick={() => setViewportSize("tablet")}
-            className="h-7"
+            className="h-6 sm:h-7 px-2 sm:px-3 text-xs"
           >
             <Tablet className="h-3 w-3 mr-1" />
-            Tablet
+            <span className="hidden xs:inline">Tablet</span>
           </Button>
           <Button
             variant={viewportSize === "mobile" ? "default" : "ghost"}
             size="sm"
             onClick={() => setViewportSize("mobile")}
-            className="h-7"
+            className="h-6 sm:h-7 px-2 sm:px-3 text-xs"
           >
             <Smartphone className="h-3 w-3 mr-1" />
-            Mobile
+            <span className="hidden xs:inline">Mobile</span>
           </Button>
         </div>
         
-        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-          {viewportSize !== "desktop" && (
-            <span>{getViewportStyles().width} × {getViewportStyles().height}</span>
+        <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground">
+          {viewportSize !== "desktop" && !isMobile && (
+            <span className="hidden sm:inline">
+              {getViewportStyles().width} × {getViewportStyles().height}
+            </span>
           )}
           {isLoading && (
             <div className="flex items-center space-x-1">
               <RotateCcw className="h-3 w-3 animate-spin" />
-              <span>Loading...</span>
+              <span className="hidden sm:inline">Loading...</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Preview Container */}
-      <div className="flex-1 flex items-center justify-center p-4 bg-gray-100 dark:bg-gray-900">
+      {/* Preview Container - Responsive */}
+      <div className="flex-1 flex items-center justify-center p-2 sm:p-4 bg-gray-100 dark:bg-gray-900">
         <div 
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-all duration-300"
-          style={viewportSize === "desktop" ? { width: "100%", height: "100%" } : getViewportStyles()}
+          className={cn(
+            "bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-all duration-300",
+            isMobile ? "w-full h-full" : ""
+          )}
+          style={isMobile ? { width: "100%", height: "100%" } : 
+                 viewportSize === "desktop" ? { width: "100%", height: "100%" } : 
+                 getViewportStyles()}
         >
           <iframe
             ref={iframeRef}
