@@ -1,40 +1,61 @@
+
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
 import type { CodeFile } from "@/types/file"
 import { Button } from "@/components/ui/button"
 import { Copy, Check, Play, Save, Download } from "lucide-react"
-import { cn } from "@/lib/utils"
-import hljs from 'highlight.js'
+import { cn } from "@/lib/utils" // Ensure this is imported
+import { formatCodeWithLineNumbers } from "@/lib/html-utils" // Import the utility
 
 interface CodeEditorProps {
   file: CodeFile
   theme?: string
-  onChange?: (content: string) => void
 }
 
-export default function CodeEditor({ file, theme = "dark", onChange }: CodeEditorProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+export default function CodeEditor({ file, theme = "dark" }: CodeEditorProps) {
+  const editorRef = useRef<HTMLPreElement>(null)
   const [content, setContent] = useState(file.content)
+  const [isEditing, setIsEditing] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const editorThemeClass = cn(
-    "w-full h-full bg-transparent border-none outline-none font-mono resize-none p-4 text-sm leading-relaxed",
+    "p-4 h-full overflow-auto font-mono text-sm",
     theme === "dark"
-      ? "bg-[#1e1e1e] text-[#d4d4d4]"
+      ? "bg-background text-foreground"
       : theme === "light"
-        ? "bg-white text-gray-800"
-        : "bg-[#1e1e1e] text-[#d4d4d4]"
+        ? "bg-background text-foreground"
+        : theme === "github-dark"
+          ? "bg-[#0d1117] text-[#c9d1d9]"
+          : theme === "github-light"
+            ? "bg-[#ffffff] text-[#24292f]"
+            : theme === "vscode-dark"
+              ? "bg-[#1e1e1e] text-[#d4d4d4]"
+              : theme === "monokai"
+                ? "bg-[#272822] text-[#f8f8f2]"
+                : "bg-background text-foreground", // Default
   )
 
   useEffect(() => {
     setContent(file.content)
   }, [file])
 
-  const handleContentChange = useCallback((newContent: string) => {
-    setContent(newContent)
-    onChange?.(newContent)
-  }, [onChange])
+  useEffect(() => {
+    if (editorRef.current && !isEditing) {
+      editorRef.current.className = `line-numbers language-${file.language}`
+      let codeElement = editorRef.current.querySelector('code');
+
+      if (!codeElement) { // If no code element, create one
+        codeElement = document.createElement('code');
+        editorRef.current.innerHTML = ''; // Clear pre
+        editorRef.current.appendChild(codeElement);
+      }
+
+      // Use the utility function to format and highlight
+      codeElement.innerHTML = formatCodeWithLineNumbers(content, file.language);
+    }
+  }, [content, file.language, isEditing])
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(content)
@@ -64,79 +85,53 @@ export default function CodeEditor({ file, theme = "dark", onChange }: CodeEdito
     URL.revokeObjectURL(url)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Tab') {
-      e.preventDefault()
-      const textarea = e.currentTarget
-      const start = textarea.selectionStart
-      const end = textarea.selectionEnd
-      const newContent = content.substring(0, start) + '  ' + content.substring(end)
-      setContent(newContent)
-      handleContentChange(newContent)
-      
-      // Set cursor position after the inserted spaces
-      setTimeout(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + 2
-      }, 0)
-    }
+  const toggleEditMode = () => {
+    setIsEditing((prev) => {
+      if (!prev && textareaRef.current) { // Entering edit mode
+        setTimeout(() => {
+          textareaRef.current?.focus()
+        }, 0)
+      }
+      return !prev;
+    });
   }
 
   return (
-    <div className="h-full flex flex-col bg-[#1e1e1e]">
-      {/* Header with file info and actions */}
-      <div className="flex items-center justify-between p-3 border-b border-gray-700 bg-[#252526]">
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-1 text-sm text-gray-300">
-            <span>components</span>
-            <span className="text-gray-500">›</span>
-            <span className="text-blue-400">{file.name}</span>
-          </div>
-        </div>
-        <div className="flex space-x-1">
-          <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-400 hover:text-white" onClick={handleCopyCode} title="Copy code">
+    <div className="h-full flex flex-col">
+      <div className="flex items-center justify-between p-2 border-b border-border bg-muted/30">
+        <div className="text-sm font-medium truncate" title={file.name}>{file.name}</div>
+        <div className="flex space-x-1 shrink-0">
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleCopyCode} title="Copy code">
             {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-400 hover:text-white" onClick={handleRunCode} title="Run code">
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleRunCode} title="Run code">
             <Play className="h-4 w-4" />
           </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-400 hover:text-white" onClick={handleSaveCode} title="Save code">
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleSaveCode} title="Save code">
             <Save className="h-4 w-4" />
           </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-400 hover:text-white" onClick={handleDownloadCode} title="Download code">
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleDownloadCode} title="Download code">
             <Download className="h-4 w-4" />
+          </Button>
+          <Button variant={isEditing ? "default" : "outline"} size="sm" onClick={toggleEditMode} className="ml-2">
+            {isEditing ? "View" : "Edit"}
           </Button>
         </div>
       </div>
-
-      {/* Line numbers and editor */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Line numbers */}
-        <div className="bg-[#1e1e1e] text-gray-500 text-sm font-mono p-4 pr-2 select-none border-r border-gray-700 min-w-[60px]">
-          {content.split('\n').map((_, index) => (
-            <div key={index} className="leading-relaxed text-right">
-              {index + 1}
-            </div>
-          ))}
-        </div>
-
-        {/* Code editor */}
-        <div className="flex-1 relative">
+      <div className={cn(editorThemeClass, "flex-1")}> {/* Added flex-1 to make it take remaining space */}
+        {isEditing ? (
           <textarea
             ref={textareaRef}
-            value={content}
-            onChange={(e) => handleContentChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className={editorThemeClass}
+            value={content} // Use content state
+            onChange={(e) => setContent(e.target.value)}
+            className="w-full h-full bg-transparent border-none outline-none font-mono resize-none p-0 m-0 leading-relaxed text-current" // Ensure no extra padding/margin and inherits text color
             spellCheck="false"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            style={{
-              tabSize: 2,
-              fontFamily: "'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace",
-            }}
           />
-        </div>
+        ) : (
+          <pre ref={editorRef} className={`line-numbers language-${file.language}`}>
+            <code>{/* Content injected by useEffect */}</code>
+          </pre>
+        )}
       </div>
     </div>
   )
