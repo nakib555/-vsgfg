@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Resizable } from "@/components/resizable"
 import FileExplorer from "@/components/file-explorer"
-import CodeEditor from "@/components/code-editor"
+import EnhancedCodeEditor from "@/components/enhanced-code-editor"
 import SearchPanel from "@/components/search-panel"
 import PreviewPanel from "@/components/preview-panel"
 import { Button } from "@/components/ui/button"
@@ -23,7 +23,8 @@ import {
   Copy, 
   Maximize2,
   Menu,
-  ChevronDown
+  ChevronDown,
+  Sparkles
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -32,9 +33,10 @@ interface EditorAreaProps {
   activeFile: CodeFile | null
   setActiveFile: (file: CodeFile | null) => void
   toggleTerminal: () => void
+  onFileUpdate?: (file: CodeFile) => void
 }
 
-export default function EditorArea({ files, activeFile, setActiveFile, toggleTerminal }: EditorAreaProps) {
+export default function EditorArea({ files, activeFile, setActiveFile, toggleTerminal, onFileUpdate }: EditorAreaProps) {
   const [activeTab, setActiveTab] = useState<"code" | "diff" | "preview">("code")
   const [activeSidebarTab, setActiveSidebarTab] = useState<"explorer" | "search">("explorer")
   const [editorTheme, setEditorTheme] = useState("dark")
@@ -234,14 +236,18 @@ export default function EditorArea({ files, activeFile, setActiveFile, toggleTer
               {/* Editor Content */}
               <div className="flex-1 overflow-hidden">
                 {activeFile ? (
-                  <CodeEditor file={activeFile} theme={editorTheme} />
+                  <EnhancedCodeEditor 
+                    file={activeFile} 
+                    theme={editorTheme} 
+                    onFileUpdate={onFileUpdate}
+                  />
                 ) : (
                   <div className="h-full flex items-center justify-center text-muted-foreground p-4">
                     <div className="text-center">
-                      <Code2 className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-4 opacity-50" />
-                      <p className="text-sm sm:text-base font-medium mb-2">No File Selected</p>
+                      <Sparkles className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-sm sm:text-base font-medium mb-2">Enhanced IDE Ready</p>
                       <p className="text-xs sm:text-sm">
-                        {isMobile ? "Tap the menu to select a file" : "Select a file from the explorer to edit"}
+                        {isMobile ? "Tap the menu to select a file or use AI to create new ones" : "Select a file from the explorer or use the AI assistant to create and manage files"}
                       </p>
                     </div>
                   </div>
@@ -255,8 +261,8 @@ export default function EditorArea({ files, activeFile, setActiveFile, toggleTer
           <div className="w-full h-full flex items-center justify-center text-muted-foreground p-4">
             <div className="text-center">
               <FileSymlink className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-sm sm:text-lg font-medium mb-2">Diff View</p>
-              <p className="text-xs sm:text-sm">Compare changes between file versions</p>
+              <p className="text-sm sm:text-lg font-medium mb-2">Enhanced Diff View</p>
+              <p className="text-xs sm:text-sm">Advanced file comparison and version control coming soon</p>
             </div>
           </div>
         )}
