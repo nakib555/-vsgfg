@@ -14,7 +14,7 @@ interface PreviewPanelProps {
 export default function PreviewPanel({ activeFile }: PreviewPanelProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [viewportSize, setViewportSize] = useState<"desktop" | "tablet" | "mobile">("desktop")
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const isMobile = useIsMobile()
 
   // Auto-adjust viewport for mobile devices
@@ -32,14 +32,14 @@ export default function PreviewPanel({ activeFile }: PreviewPanelProps) {
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Preview</title>
+          <title>Preview - No File Selected</title>
           <style>
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
               margin: 0;
               padding: 20px;
-              background: #f8fafc;
-              color: #334155;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
               display: flex;
               align-items: center;
               justify-content: center;
@@ -48,55 +48,61 @@ export default function PreviewPanel({ activeFile }: PreviewPanelProps) {
             .container {
               text-align: center;
               max-width: 90%;
-              padding: 20px;
+              padding: 40px;
+              background: rgba(255, 255, 255, 0.1);
+              backdrop-filter: blur(10px);
+              border-radius: 20px;
+              border: 1px solid rgba(255, 255, 255, 0.2);
             }
             .icon {
-              width: 48px;
-              height: 48px;
+              width: 64px;
+              height: 64px;
               margin: 0 auto 16px;
-              opacity: 0.5;
+              opacity: 0.8;
+              animation: float 3s ease-in-out infinite;
             }
             @media (min-width: 640px) {
               .icon {
-                width: 64px;
-                height: 64px;
+                width: 80px;
+                height: 80px;
                 margin-bottom: 24px;
               }
             }
+            @keyframes float {
+              0%, 100% { transform: translateY(0px); }
+              50% { transform: translateY(-10px); }
+            }
             h1 {
-              font-size: 20px;
+              font-size: 24px;
               font-weight: 600;
               margin-bottom: 8px;
-              color: #1e293b;
+              color: white;
             }
             @media (min-width: 640px) {
               h1 {
-                font-size: 24px;
+                font-size: 32px;
                 margin-bottom: 12px;
               }
             }
             p {
-              font-size: 14px;
+              font-size: 16px;
               line-height: 1.6;
-              opacity: 0.8;
+              opacity: 0.9;
             }
             @media (min-width: 640px) {
               p {
-                font-size: 16px;
+                font-size: 18px;
               }
             }
           </style>
         </head>
         <body>
           <div class="container">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-              <line x1="9" y1="9" x2="9.01" y2="9"/>
-              <line x1="15" y1="9" x2="15.01" y2="9"/>
+            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
             </svg>
-            <h1>No File Selected</h1>
-            <p>Select an HTML file from the explorer to see a live preview here.</p>
+            <h1>Ready to Preview</h1>
+            <p>Select an HTML file from your project to see a live preview, or create one using the AI assistant!</p>
           </div>
         </body>
         </html>
@@ -342,9 +348,10 @@ export default function PreviewPanel({ activeFile }: PreviewPanelProps) {
         doc.write(getPreviewContent())
         doc.close()
         
-        iframe.onload = () => {
+        // Set loading to false after a short delay to show the content
+        setTimeout(() => {
           setIsLoading(false)
-        }
+        }, 500)
       }
     }
   }, [activeFile])
@@ -416,10 +423,18 @@ export default function PreviewPanel({ activeFile }: PreviewPanelProps) {
       </div>
 
       {/* Preview Container - Responsive */}
-      <div className="flex-1 flex items-center justify-center p-2 sm:p-4 bg-gray-100 dark:bg-gray-900">
+      <div className="flex-1 flex items-center justify-center p-2 sm:p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
+            <div className="flex items-center space-x-2">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="text-sm">Loading preview...</span>
+            </div>
+          </div>
+        )}
         <div 
           className={cn(
-            "bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-all duration-300",
+            "bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden transition-all duration-300 border border-gray-200 dark:border-gray-700",
             isMobile ? "w-full h-full" : ""
           )}
           style={isMobile ? { width: "100%", height: "100%" } : 
@@ -428,7 +443,7 @@ export default function PreviewPanel({ activeFile }: PreviewPanelProps) {
         >
           <iframe
             ref={iframeRef}
-            className="w-full h-full border-0"
+            className={cn("w-full h-full border-0 transition-opacity duration-300", isLoading ? "opacity-0" : "opacity-100")}
             title="Preview"
             sandbox="allow-scripts allow-same-origin"
           />

@@ -28,7 +28,11 @@ import {
   Play,
   Square,
   Loader2,
-  Wand2
+  Wand2,
+  Folder,
+  CheckCircle,
+  XCircle,
+  Clock
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -46,12 +50,13 @@ type MessageType = {
 }
 
 type FileOperation = {
-  type: 'create' | 'update' | 'delete'
+  type: 'create' | 'update' | 'delete' | 'create-folder'
   path: string
   content?: string
   language?: string
   status: 'pending' | 'in-progress' | 'completed' | 'error'
   progress?: number
+  description?: string
 }
 
 interface GeminiModel {
@@ -75,14 +80,15 @@ interface EnhancedAIChatProps {
   onFileDelete: (fileId: string) => void
 }
 
-const TYPING_SPEED = 15 // Faster typing for better UX
+const TYPING_SPEED = 8 // Very fast typing like bolt.new
+const PROJECT_FOLDER = "ai-project" // Dedicated folder for AI-generated files
 
 export default function EnhancedAIChat({ files, onFileCreate, onFileUpdate, onFileDelete }: EnhancedAIChatProps) {
   const [messages, setMessages] = useState<MessageType[]>([
     {
       id: "1",
       role: "assistant",
-      content: "Hello! I'm your enhanced AI coding assistant. I can help you create, update, and manage files in your project. Just describe what you want to build and I'll help you implement it!",
+      content: "🚀 Welcome to your AI coding assistant! I can help you build complete projects with live file creation and updates.\n\nJust describe what you want to build and I'll create the files with live typing animations, organize them in folders, and set up your project structure.\n\nTry saying: \"Create a React todo app\" or \"Build a landing page with HTML and CSS\"",
       timestamp: new Date(),
     },
   ])
@@ -96,6 +102,7 @@ export default function EnhancedAIChat({ files, onFileCreate, onFileUpdate, onFi
   const [isAISending, setIsAISending] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [currentlyTypingFile, setCurrentlyTypingFile] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -107,7 +114,7 @@ export default function EnhancedAIChat({ files, onFileCreate, onFileUpdate, onFi
     scrollToBottom()
   }, [messages, scrollToBottom])
 
-  // Enhanced typing effect with file operations
+  // Enhanced typing effect with live file content typing
   useEffect(() => {
     const typingMessage = messages.find(msg => msg.isTyping && msg.role === 'assistant');
     if (typingMessage) {
@@ -163,62 +170,145 @@ export default function EnhancedAIChat({ files, onFileCreate, onFileUpdate, onFi
           : msg
       ));
 
-      // Simulate file operation with progress
-      for (let progress = 0; progress <= 100; progress += 10) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-        setMessages(prev => prev.map(msg => 
-          msg.id === messageId 
-            ? {
-                ...msg, 
-                fileOperations: msg.fileOperations?.map(op => 
-                  op.path === operation.path ? { ...op, progress } : op
-                )
-              }
-            : msg
-        ));
-      }
+      setCurrentlyTypingFile(operation.path);
 
-      // Execute the actual operation
       try {
-        if (operation.type === 'create' && operation.content) {
+        if (operation.type === 'create-folder') {
+          // Create folder (visual only, folders are implicit in file paths)
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          setMessages(prev => prev.map(msg => 
+            msg.id === messageId 
+              ? {
+                  ...msg, 
+                  fileOperations: msg.fileOperations?.map(op => 
+                    op.path === operation.path ? { ...op, status: 'completed', progress: 100 } : op
+                  )
+                }
+              : msg
+          ));
+          
+          toast.success(`📁 Created folder: ${operation.path}`);
+          
+        } else if (operation.type === 'create' && operation.content) {
+          // Live typing animation for file content
+          const content = operation.content;
+          let typedContent = "";
+          
+          // Create file with empty content first
           const newFile: CodeFile = {
-            id: Date.now().toString(),
+            id: Date.now().toString() + Math.random(),
             name: operation.path.split('/').pop() || 'untitled',
             path: operation.path,
-            content: operation.content,
-            language: operation.language || 'plaintext'
+            content: "",
+            language: operation.language || getLanguageFromPath(operation.path)
           };
           onFileCreate(newFile);
+
+          // Type content character by character
+          for (let i = 0; i <= content.length; i++) {
+            typedContent = content.substring(0, i);
+            
+            // Update file content
+            onFileUpdate({
+              ...newFile,
+              content: typedContent
+            });
+
+            // Update progress
+            const progress = Math.round((i / content.length) * 100);
+            setMessages(prev => prev.map(msg => 
+              msg.id === messageId 
+                ? {
+                    ...msg, 
+                    fileOperations: msg.fileOperations?.map(op => 
+                      op.path === operation.path ? { ...op, progress } : op
+                    )
+                  }
+                : msg
+            ));
+
+            await new Promise(resolve => setTimeout(resolve, 2)); // Very fast typing
+          }
+
+          // Mark as completed
+          setMessages(prev => prev.map(msg => 
+            msg.id === messageId 
+              ? {
+                  ...msg, 
+                  fileOperations: msg.fileOperations?.map(op => 
+                    op.path === operation.path ? { ...op, status: 'completed', progress: 100 } : op
+                  )
+                }
+              : msg
+          ));
+
+          toast.success(`✅ Created: ${operation.path}`);
+          
         } else if (operation.type === 'update' && operation.content) {
           const existingFile = files.find(f => f.path === operation.path);
           if (existingFile) {
-            onFileUpdate({
-              ...existingFile,
-              content: operation.content
-            });
+            // Live typing for updates too
+            const content = operation.content;
+            let typedContent = "";
+            
+            for (let i = 0; i <= content.length; i++) {
+              typedContent = content.substring(0, i);
+              
+              onFileUpdate({
+                ...existingFile,
+                content: typedContent
+              });
+
+              const progress = Math.round((i / content.length) * 100);
+              setMessages(prev => prev.map(msg => 
+                msg.id === messageId 
+                  ? {
+                      ...msg, 
+                      fileOperations: msg.fileOperations?.map(op => 
+                        op.path === operation.path ? { ...op, progress } : op
+                      )
+                    }
+                  : msg
+              ));
+
+              await new Promise(resolve => setTimeout(resolve, 2));
+            }
+
+            setMessages(prev => prev.map(msg => 
+              msg.id === messageId 
+                ? {
+                    ...msg, 
+                    fileOperations: msg.fileOperations?.map(op => 
+                      op.path === operation.path ? { ...op, status: 'completed', progress: 100 } : op
+                    )
+                  }
+                : msg
+            ));
+
+            toast.success(`🔄 Updated: ${operation.path}`);
           }
         } else if (operation.type === 'delete') {
           const existingFile = files.find(f => f.path === operation.path);
           if (existingFile) {
             onFileDelete(existingFile.id);
+            
+            setMessages(prev => prev.map(msg => 
+              msg.id === messageId 
+                ? {
+                    ...msg, 
+                    fileOperations: msg.fileOperations?.map(op => 
+                      op.path === operation.path ? { ...op, status: 'completed', progress: 100 } : op
+                    )
+                  }
+                : msg
+            ));
+
+            toast.success(`🗑️ Deleted: ${operation.path}`);
           }
         }
 
-        // Mark operation as completed
-        setMessages(prev => prev.map(msg => 
-          msg.id === messageId 
-            ? {
-                ...msg, 
-                fileOperations: msg.fileOperations?.map(op => 
-                  op.path === operation.path ? { ...op, status: 'completed', progress: 100 } : op
-                )
-              }
-            : msg
-        ));
-
-        toast.success(`${operation.type === 'create' ? 'Created' : operation.type === 'update' ? 'Updated' : 'Deleted'} ${operation.path}`);
       } catch (error) {
-        // Mark operation as error
         setMessages(prev => prev.map(msg => 
           msg.id === messageId 
             ? {
@@ -229,9 +319,37 @@ export default function EnhancedAIChat({ files, onFileCreate, onFileUpdate, onFi
               }
             : msg
         ));
-        toast.error(`Failed to ${operation.type} ${operation.path}`);
+        toast.error(`❌ Failed to ${operation.type}: ${operation.path}`);
       }
     }
+    
+    setCurrentlyTypingFile(null);
+  };
+
+  const getLanguageFromPath = (path: string): string => {
+    const ext = path.split('.').pop()?.toLowerCase();
+    const languageMap: Record<string, string> = {
+      'js': 'javascript',
+      'jsx': 'javascript',
+      'ts': 'typescript',
+      'tsx': 'typescript',
+      'html': 'html',
+      'css': 'css',
+      'scss': 'scss',
+      'json': 'json',
+      'md': 'markdown',
+      'py': 'python',
+      'java': 'java',
+      'cpp': 'cpp',
+      'c': 'c',
+      'php': 'php',
+      'rb': 'ruby',
+      'go': 'go',
+      'rs': 'rust',
+      'vue': 'vue',
+      'svelte': 'svelte'
+    };
+    return languageMap[ext || ''] || 'plaintext';
   };
 
   const handleVerifyApiKey = async () => {
@@ -271,7 +389,7 @@ export default function EnhancedAIChat({ files, onFileCreate, onFileUpdate, onFi
         setActiveApiKey(apiKeyInputValue.trim())
         const flashModel = fetchedModels.find(m => m.id.includes('flash'));
         setSelectedModel(flashModel ? flashModel.id : fetchedModels[0].id);
-        toast.success("API Key set and models loaded successfully!")
+        toast.success("🎉 API Key verified! Ready to build amazing projects!")
       }
 
     } catch (error: any) {
@@ -288,51 +406,79 @@ export default function EnhancedAIChat({ files, onFileCreate, onFileUpdate, onFi
   const parseFileOperations = (content: string): FileOperation[] => {
     const operations: FileOperation[] = [];
     
-    // Enhanced regex patterns for file operations
+    // Enhanced regex patterns for file operations with folder support
     const createFilePattern = /```(\w+)?\s*(?:\/\/\s*)?(?:CREATE|create)\s+(.+?)\n([\s\S]*?)```/gi;
     const updateFilePattern = /```(\w+)?\s*(?:\/\/\s*)?(?:UPDATE|update)\s+(.+?)\n([\s\S]*?)```/gi;
     const deleteFilePattern = /(?:DELETE|delete)\s+(?:file\s+)?(.+?)(?:\n|$)/gi;
+    const createFolderPattern = /(?:CREATE FOLDER|create folder|MKDIR|mkdir)\s+(.+?)(?:\n|$)/gi;
 
     let match;
+
+    // Parse folder creation
+    while ((match = createFolderPattern.exec(content)) !== null) {
+      const folderPath = match[1].trim();
+      operations.push({
+        type: 'create-folder',
+        path: `${PROJECT_FOLDER}/${folderPath}`,
+        status: 'pending',
+        description: `Creating folder: ${folderPath}`
+      });
+    }
 
     // Parse create operations
     while ((match = createFilePattern.exec(content)) !== null) {
       const language = match[1] || 'plaintext';
-      const path = match[2].trim();
+      let path = match[2].trim();
       const fileContent = match[3].trim();
+      
+      // Ensure files go into the project folder
+      if (!path.startsWith(PROJECT_FOLDER)) {
+        path = `${PROJECT_FOLDER}/${path}`;
+      }
       
       operations.push({
         type: 'create',
         path,
         content: fileContent,
         language,
-        status: 'pending'
+        status: 'pending',
+        description: `Creating ${path}`
       });
     }
 
     // Parse update operations
     while ((match = updateFilePattern.exec(content)) !== null) {
       const language = match[1] || 'plaintext';
-      const path = match[2].trim();
+      let path = match[2].trim();
       const fileContent = match[3].trim();
+      
+      if (!path.startsWith(PROJECT_FOLDER)) {
+        path = `${PROJECT_FOLDER}/${path}`;
+      }
       
       operations.push({
         type: 'update',
         path,
         content: fileContent,
         language,
-        status: 'pending'
+        status: 'pending',
+        description: `Updating ${path}`
       });
     }
 
     // Parse delete operations
     while ((match = deleteFilePattern.exec(content)) !== null) {
-      const path = match[1].trim();
+      let path = match[1].trim();
+      
+      if (!path.startsWith(PROJECT_FOLDER)) {
+        path = `${PROJECT_FOLDER}/${path}`;
+      }
       
       operations.push({
         type: 'delete',
         path,
-        status: 'pending'
+        status: 'pending',
+        description: `Deleting ${path}`
       });
     }
 
@@ -364,8 +510,8 @@ export default function EnhancedAIChat({ files, onFileCreate, onFileUpdate, onFi
       textareaRef.current.style.height = "60px"
     }
     
-    // Enhanced system prompt for file operations
-    const systemPrompt = `You are an expert coding assistant that can create, update, and manage files. When responding to user requests:
+    // Enhanced system prompt for file operations with folder organization
+    const systemPrompt = `You are an expert coding assistant that creates complete projects with proper folder structure. When responding to user requests:
 
 1. For file creation, use this format:
 \`\`\`javascript
@@ -377,7 +523,11 @@ export const Button = ({ children, onClick }) => {
 };
 \`\`\`
 
-2. For file updates, use this format:
+2. For folder creation, use:
+CREATE FOLDER src/components
+CREATE FOLDER public/images
+
+3. For file updates, use:
 \`\`\`javascript
 // UPDATE src/App.tsx
 import { Button } from './components/Button';
@@ -387,10 +537,12 @@ function App() {
 }
 \`\`\`
 
-3. For file deletion, use:
+4. For file deletion, use:
 DELETE src/old-file.js
 
-Always explain what you're doing and provide complete, working code. Consider the existing project structure: ${files.map(f => f.path).join(', ')}`;
+Always organize files in proper folder structures. Create folders first, then files. All files will be automatically placed in the "ai-project" folder. Provide complete, working code with proper imports and exports.
+
+Current project structure: ${files.map(f => f.path).join(', ')}`;
 
     const conversationHistory: GeminiContent[] = [
       { role: 'user', parts: [{ text: systemPrompt }] },
@@ -486,7 +638,7 @@ Always explain what you're doing and provide complete, working code. Consider th
       {
         id: Date.now().toString(),
         role: "assistant",
-        content: "Chat cleared. How can I help you build something amazing today?",
+        content: "🚀 Chat cleared! Ready to build something amazing? Just describe your project and I'll create it with live file animations!",
         timestamp: new Date(),
       },
     ])
@@ -539,6 +691,12 @@ Always explain what you're doing and provide complete, working code. Consider th
                 </Badge>
               )}
               {!operation && <span>{language || "code"}</span>}
+              {currentlyTypingFile === filePath && (
+                <Badge variant="outline" className="text-xs animate-pulse">
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  Typing...
+                </Badge>
+              )}
             </div>
             <Button
               size="icon"
@@ -576,32 +734,56 @@ Always explain what you're doing and provide complete, working code. Consider th
     }
   
     return <>{elements.length > 0 ? elements : <span className="whitespace-pre-wrap">{content}</span>}</>;
-  }, [copiedId]);
+  }, [copiedId, currentlyTypingFile]);
 
   const renderFileOperations = (operations: FileOperation[]) => {
     if (!operations || operations.length === 0) return null;
 
     return (
       <div className="mt-4 space-y-2">
-        <h4 className="text-sm font-medium text-muted-foreground">File Operations:</h4>
+        <h4 className="text-sm font-medium text-muted-foreground flex items-center">
+          <Wand2 className="w-4 h-4 mr-2" />
+          File Operations:
+        </h4>
         {operations.map((op, index) => (
-          <div key={index} className="flex items-center space-x-2 p-2 bg-muted/30 rounded-md">
+          <div key={index} className="flex items-center space-x-3 p-3 bg-muted/30 rounded-lg border">
             <div className="flex items-center space-x-2 flex-1">
               {op.type === 'create' && <FilePlus className="w-4 h-4 text-green-500" />}
+              {op.type === 'create-folder' && <FolderPlus className="w-4 h-4 text-blue-500" />}
               {op.type === 'update' && <FileCode className="w-4 h-4 text-blue-500" />}
               {op.type === 'delete' && <Trash className="w-4 h-4 text-red-500" />}
-              <span className="text-sm font-mono">{op.path}</span>
-              <Badge variant={
-                op.status === 'completed' ? 'default' :
-                op.status === 'error' ? 'destructive' :
-                op.status === 'in-progress' ? 'secondary' : 'outline'
-              }>
-                {op.status === 'in-progress' && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
-                {op.status}
-              </Badge>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-mono truncate">{op.path}</span>
+                  {currentlyTypingFile === op.path && (
+                    <Badge variant="outline" className="text-xs animate-pulse">
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      Live typing...
+                    </Badge>
+                  )}
+                </div>
+                {op.description && (
+                  <p className="text-xs text-muted-foreground">{op.description}</p>
+                )}
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Badge variant={
+                  op.status === 'completed' ? 'default' :
+                  op.status === 'error' ? 'destructive' :
+                  op.status === 'in-progress' ? 'secondary' : 'outline'
+                } className="text-xs">
+                  {op.status === 'completed' && <CheckCircle className="w-3 h-3 mr-1" />}
+                  {op.status === 'error' && <XCircle className="w-3 h-3 mr-1" />}
+                  {op.status === 'in-progress' && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                  {op.status === 'pending' && <Clock className="w-3 h-3 mr-1" />}
+                  {op.status}
+                </Badge>
+              </div>
             </div>
             {op.status === 'in-progress' && op.progress !== undefined && (
-              <Progress value={op.progress} className="w-20" />
+              <Progress value={op.progress} className="w-24" />
             )}
           </div>
         ))}
@@ -614,14 +796,20 @@ Always explain what you're doing and provide complete, working code. Consider th
       <div className="border-b border-border p-3 flex items-center justify-between shrink-0">
         <h2 className="text-lg font-semibold flex items-center">
           <Wand2 className="mr-2 h-5 w-5" />
-          Enhanced AI Assistant
+          AI Project Builder
         </h2>
         <div className="flex items-center space-x-2">
           {isGenerating && (
             <div className="flex items-center space-x-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Generating...</span>
+              <span>Building...</span>
             </div>
+          )}
+          {currentlyTypingFile && (
+            <Badge variant="outline" className="text-xs animate-pulse">
+              <FileCode className="w-3 h-3 mr-1" />
+              Typing: {currentlyTypingFile.split('/').pop()}
+            </Badge>
           )}
           <Button variant="ghost" size="icon" onClick={clearChat} title="Clear chat">
             <Trash className="h-4 w-4" />
@@ -655,7 +843,7 @@ Always explain what you're doing and provide complete, working code. Consider th
                     <User className="h-5 w-5 mr-2 text-primary" />
                   )}
                   <span className="text-sm font-medium">
-                    {message.role === "assistant" ? "AI Assistant" : "You"}
+                    {message.role === "assistant" ? "AI Project Builder" : "You"}
                   </span>
                   <span className="text-xs text-muted-foreground ml-2">
                     {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -688,17 +876,17 @@ Always explain what you're doing and provide complete, working code. Consider th
                 value={inputValue}
                 onChange={handleTextareaChange}
                 onKeyDown={handleKeyDown}
-                placeholder={activeApiKey && selectedModel ? "Describe what you want to build or ask for help with your code..." : "Set API Key and select model in Settings to start coding."}
+                placeholder={activeApiKey && selectedModel ? "Describe your project: 'Create a React todo app' or 'Build a landing page with HTML and CSS'..." : "Set API Key and select model in Settings to start building."}
                 className="min-h-[60px] max-h-[150px] resize-none"
                 rows={1}
                 disabled={!activeApiKey || !selectedModel || isAISending || messages.some(m => m.isTyping)}
               />
               <div className="flex justify-between items-center">
                 <div className="flex space-x-1">
-                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Quick file creation (coming soon)" disabled>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Quick templates (coming soon)" disabled>
                     <FilePlus className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Project templates (coming soon)" disabled>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Project scaffolding (coming soon)" disabled>
                     <FolderPlus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -712,7 +900,7 @@ Always explain what you're doing and provide complete, working code. Consider th
                   ) : (
                     <Send className="h-4 w-4 mr-2" />
                   )}
-                  Send
+                  Build Project
                 </Button>
               </div>
             </div>
@@ -737,8 +925,8 @@ Always explain what you're doing and provide complete, working code. Consider th
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Gemini API key is required for enhanced file operations and code generation.
-              {activeApiKey && <span className="ml-1 font-medium text-green-500">Key is active.</span>}
+              Gemini API key is required for AI project building with live file creation.
+              {activeApiKey && <span className="ml-1 font-medium text-green-500">✅ Key is active.</span>}
             </p>
           </div>
 
@@ -781,22 +969,31 @@ Always explain what you're doing and provide complete, working code. Consider th
               </SelectContent>
             </Select>
              <p className="text-xs text-muted-foreground">
-              Select a Gemini model optimized for code generation and file operations.
+              Select a Gemini model optimized for code generation and project building.
             </p>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Project Files</label>
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>Current project has {files.length} files:</p>
-              <div className="max-h-32 overflow-y-auto space-y-1">
-                {files.map(file => (
-                  <div key={file.id} className="flex items-center space-x-2 text-xs">
-                    <FileText className="w-3 h-3" />
-                    <span className="font-mono">{file.path}</span>
-                    <Badge variant="outline" className="text-xs">{file.language}</Badge>
-                  </div>
-                ))}
+            <label className="text-sm font-medium">Project Structure</label>
+            <div className="text-xs text-muted-foreground space-y-2">
+              <div className="flex items-center space-x-2">
+                <Folder className="w-4 h-4" />
+                <span className="font-mono">{PROJECT_FOLDER}/</span>
+                <Badge variant="outline" className="text-xs">AI Project Folder</Badge>
+              </div>
+              <p>All AI-generated files will be organized in the "{PROJECT_FOLDER}" folder with proper structure.</p>
+              <div className="max-h-32 overflow-y-auto space-y-1 bg-muted/20 p-2 rounded">
+                {files.filter(f => f.path.startsWith(PROJECT_FOLDER)).length > 0 ? (
+                  files.filter(f => f.path.startsWith(PROJECT_FOLDER)).map(file => (
+                    <div key={file.id} className="flex items-center space-x-2 text-xs">
+                      <FileText className="w-3 h-3" />
+                      <span className="font-mono">{file.path}</span>
+                      <Badge variant="outline" className="text-xs">{file.language}</Badge>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">No AI-generated files yet. Start building!</p>
+                )}
               </div>
             </div>
           </div>
